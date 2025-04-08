@@ -3,6 +3,9 @@ name: Build ArrayMorph
 on:
   push:
     branches: [main]
+  paths:
+    - 'arraymorph/**'
+    - '.github/workflows/**'
   pull_request:
     branches: [main]
 
