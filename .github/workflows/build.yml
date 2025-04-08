@@ -1,0 +1,57 @@
+name: Build ArrayMorph
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      HDF5_INSTALL: ${{ github.workspace }}/HDF5
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config python3 python3-pip libssl-dev cmake
+
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+          cd $VCPKG_ROOT
+          ./bootstrap-vcpkg.sh
+          ./vcpkg install aws-sdk-cpp[s3]:x64-linux
+          rm -rf vcpkg/buildtrees vcpkg/downloads vcpkg/packages
+          ./vcpkg install azure-storage-blobs-cpp:x64-linux
+          rm -rf vcpkg/buildtrees vcpkg/downloads vcpkg/packages
+
+      - name: Install HDF5
+        run: |
+          git clone https://github.com/HDFGroup/hdf5.git
+          cd hdf5
+          git checkout hdf5-1_14_2
+          ./configure --prefix=$HDF5_INSTALL --enable-cxx
+          make -j$(nproc)
+          make install
+          rm -rf hdf5
+
+      - name: Install h5py
+        run: |
+          python3 -m pip install --upgrade pip
+          HDF5_DIR=$HDF5_INSTALL pip3 install --no-binary=h5py h5py
+
+      - name: Build ArrayMorph
+        run: |
+          cd arraymorph
+          cmake -B ./build -S . \
+            -DCMAKE_PREFIX_PATH=$HDF5_INSTALL \
+            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+          cmake --build ./build --parallel

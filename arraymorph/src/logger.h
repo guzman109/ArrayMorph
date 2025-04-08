@@ -1,28 +1,17 @@
+#include <iostream>
+#include <sstream>
+#include "constants.h"
 #ifndef __LOGGER__
 #define __LOGGER__
-
-#include <iostream>
-#include <string>
-#include "constants.h"
-
-using namespace std;
-
-class Logger
-{
+class Logger {
 public:
-    static void log(string message, string value = "")
-    {
-        #ifdef LOG_ENABLE
-        cout << message << value << endl;
-        #endif
+    template <typename... Args>
+    static void log(Args&&... args) {
+#ifdef LOG_ENABLE
+    std::ostringstream oss;
+    ((oss << std::forward<Args>(args) << ' '), ...);
+    std::cout << oss.str() << std::endl;
+#endif
     }
-
-    static void log(string message, double value)
-    {
-        #ifdef LOG_ENABLE
-        cout << message << value << endl;
-        #endif
-    }
-
 };
 #endif

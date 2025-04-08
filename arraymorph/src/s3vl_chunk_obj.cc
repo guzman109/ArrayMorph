@@ -1,28 +1,24 @@
 #include "s3vl_chunk_obj.h"
-#include "utils.h"
 #include <sstream>
 #include <algorithm>
 #include <assert.h>
-
-S3VLChunkObj::S3VLChunkObj(string name, FileFormat format, hid_t dtype, vector<vector<hsize_t>> ranges,
-			vector<hsize_t> shape, int n_bits, vector<hsize_t> return_offsets) {
-	this->uri = name;
-	this->format = format;
-	this->dtype = dtype;
+S3VLChunkObj::S3VLChunkObj(const std::string& name, hid_t dtype, std::vector<std::vector<hsize_t>>& ranges,
+			const std::vector<hsize_t>& shape, std::vector<hsize_t>& return_offsets): 
+			uri(name), dtype(dtype), ranges(ranges), shape(shape), global_offsets(return_offsets) {
 	this->data_size = H5Tget_size(dtype);
-	this->ranges = ranges;
-	this->shape = shape;
+	// this->data_size = 4;
 	this->ndims = shape.size();
-	this->n_bits = n_bits;
-	this->global_offsets = return_offsets;
 	assert(this->ndims = ranges.size());
 
-	vector<hsize_t>reduc_per_dim(this->ndims);
+	reduc_per_dim.resize(this->ndims);
+	// reduc_per_dim[0] = 1;
+	// for (int i = 1; i < this->ndims; i++)
+	// 	reduc_per_dim[i] = reduc_per_dim[i - 1] * shape[i - 1];
 	reduc_per_dim[this->ndims - 1] = 1;
 	for (int i = this->ndims - 2; i >= 0; i--)
 		reduc_per_dim[i] = reduc_per_dim[i + 1] * shape[i + 1];
-	this->reduc_per_dim = reduc_per_dim;
 	this->local_offsets = calSerialOffsets(ranges, shape);
+	// this->size = reduc_per_dim[ndims - 1] * shape[ndims - 1] * data_size;
 	this->size = reduc_per_dim[0] * shape[0] * data_size;
     hsize_t sr = 1;
     for (int i = 0; i < ndims; i++)
@@ -38,15 +34,15 @@ bool S3VLChunkObj::checkFullWrite() {
 	return true;
 }
 
-string S3VLChunkObj::to_string() {
-	stringstream ss;
-	ss << uri << " " << dtype << " " << format << " " << ndims << endl;
+
+std::string S3VLChunkObj::to_string() {
+	std::stringstream ss;
+	ss << uri << " " << dtype  << " " << ndims  << " " << data_size << std::endl;
 	for (auto &s : shape)
 		ss << s << " ";
-	ss << endl;
+	ss << std::endl;
 	for (int i = 0; i < ndims; i++) {
-		ss << shape[i] << " [" << ranges[i][0] << ", " << ranges[i][1] << "]" << endl; 
+		ss << shape[i] << " [" << ranges[i][0] << ", " << ranges[i][1] << "]" << std::endl; 
 	}
-	ss << n_bits << endl;
 	return ss.str();
 }

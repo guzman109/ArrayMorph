@@ -1,14 +1,10 @@
 #ifndef S3VL_GROUP_CALLBACKS
-#define S3VL_GROUP_CALLBACKS
-
 #include <string>
 #include <hdf5.h>
 #include <vector>
 
-using namespace std;
-
 typedef struct S3VLGroupObj {
-	vector<string> keys;
+	std::vector<std::string> keys;
 } S3VLGroupObj;
 
 class S3VLGroupCallbacks{
@@ -19,4 +15,5 @@ public:
 	static herr_t S3VLlink_get(void * obj, const H5VL_loc_params_t *loc_params, H5VL_link_get_args_t *args, hid_t dxpl_id, void **req); 
 	static herr_t S3VLlink_specific(void * obj, const H5VL_loc_params_t *loc_params, H5VL_link_specific_args_t *args, hid_t dxpl_id, void **req);
 };
+#define S3VL_GROUP_CALLBACKS
 #endif

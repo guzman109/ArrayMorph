@@ -1,13 +1,10 @@
 #ifndef S3VL_FILE_CALLBACKS
-#define S3VL_FILE_CALLBACKS
-
 #include <string>
 #include <hdf5.h>
 
-using namespace std;
 
 typedef struct S3VLFileObj {
-	string name;
+	std::string name;
 } S3VLFileObj;
 
 class S3VLFileCallbacks{
@@ -17,4 +14,5 @@ public:
 	static herr_t S3VL_file_get(void *file, H5VL_file_get_args_t *args, hid_t dxpl_id, void **req);
 	static herr_t S3VL_file_close(void *file, hid_t dxpl_id, void **req);
 };
+#define S3VL_FILE_CALLBACKS
 #endif

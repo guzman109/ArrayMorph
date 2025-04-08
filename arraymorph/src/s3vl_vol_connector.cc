@@ -10,8 +10,8 @@
 #include <H5PLextern.h>
 #include <stdlib.h>
 #include <iostream>
-
-using namespace std;
+// #include "operators.h"
+// #include "metadata.h"
 
 /* Introscpect */
 
@@ -136,12 +136,12 @@ static const H5VL_class_t template_class_g = {
  */
 
 static herr_t S3_introspect_opt_query(void *obj, H5VL_subclass_t cls, int op_type, uint64_t *flags) {
-    return SUCCESS;
+    return ARRAYMORPH_SUCCESS;
 }
 
 static herr_t S3_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl, const struct H5VL_class_t **conn_cls){
     *conn_cls = new H5VL_class_t;
-    return SUCCESS;
+    return ARRAYMORPH_SUCCESS;
 }
 
 H5PL_type_t H5PLget_plugin_type(void) {return H5PL_TYPE_VOL;}

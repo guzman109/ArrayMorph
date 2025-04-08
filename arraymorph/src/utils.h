@@ -4,14 +4,38 @@
 #include <vector>
 #include <assert.h>
 #include "constants.h"
+#include <memory>
+#include <list>
 #include <hdf5.h>
-using namespace std;
-vector<hsize_t> reduceAdd(vector<hsize_t> a, vector<hsize_t> b);
+
+class Segment {
+public:
+	Segment(hsize_t start_offset, hsize_t end_offset, hsize_t required_data_size, const std::list<std::vector<hsize_t>>::iterator &mapping_start, const std::list<std::vector<hsize_t>>::iterator &mapping_end, hsize_t mapping_size);
+	Segment(hsize_t start_offset, hsize_t end_offset, const std::list<std::vector<hsize_t>>::iterator &mapping_start, const std::list<std::vector<hsize_t>>::iterator &mapping_end, hsize_t mapping_size);
+	Segment(const std::list<std::vector<hsize_t>>::iterator &mapping_start, const std::list<std::vector<hsize_t>>::iterator &mapping_end, hsize_t mapping_size);
+	std::string to_string();
+	hsize_t start_offset; // inclusive
+	hsize_t end_offset;   // inclusive
+	hsize_t required_data_size;
+	hsize_t mapping_size;
+	std::list<std::vector<hsize_t>>::iterator mapping_start;    // inclusive
+	std::list<std::vector<hsize_t>>::iterator mapping_end;      // exclusive
+};
+
+std::vector<hsize_t> reduceAdd(std::vector<hsize_t>& a, std::vector<hsize_t>& b);
+
 // calculate each row's start position in serial order
-vector<hsize_t> calSerialOffsets(vector<vector<hsize_t>> ranges, vector<hsize_t> shape);
+std::vector<hsize_t> calSerialOffsets(std::vector<std::vector<hsize_t>> ranges, std::vector<hsize_t> shape);
+
 // mapping offsets between two hyperslab
-vector<vector<hsize_t>> mapHyperslab(vector<hsize_t> &local, vector<hsize_t> &global, vector<hsize_t> &out, 
+std::list<std::vector<hsize_t>> mapHyperslab(std::vector<hsize_t> &local, std::vector<hsize_t> &global, std::vector<hsize_t> &out, 
 	hsize_t &input_rsize, hsize_t &out_rsize, hsize_t &data_size);
+
 // create Json query for Lambda function
-string createQuery(hsize_t data_size, int ndims, vector<hsize_t> shape, vector<vector<hsize_t>> ranges);
+std::string createQuery(hsize_t data_size, int ndims, const std::vector<hsize_t>& shape, std::vector<std::vector<hsize_t>>& ranges);
+
+// generate list of segments for chunk-level query
+
+std::vector<std::unique_ptr<Segment>> generateSegments(std::list<std::vector<hsize_t>>& mapping, hsize_t chunk_size);
+
 #endif
