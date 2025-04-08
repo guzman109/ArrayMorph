@@ -2,12 +2,14 @@ name: Build ArrayMorph
 
 on:
   push:
-    branches: [main]
+    branches:
+    - main
   paths:
     - arraymorph/**
     - .github/workflows/**
   pull_request:
-    branches: [main]
+    branches: 
+    - main
 
 jobs:
   build:
