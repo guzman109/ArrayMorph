@@ -1,4 +1,5 @@
 # About ArrayMorph
+[![Build Status](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yml/badge.svg)](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yml)
 
 ArrayMorph is a software to manage array data stored on cloud object storage efficiently. It supports both HDF5 C++ API and h5py API. The data returned by h5py API is numpy arrays. By using h5py API, user can access array data stored on cloud and feed the read data into machine learning pipelines seamlessly. For usage of ArrayMorph, please refer to examples in example folder.
 
