@@ -1,22 +1,23 @@
 # About ArrayMorph
 
-ArrayMorph stores and retrieves HDF5 data from the AWS S3 cloud object store. It supports both the HDF5 C++ API and the h5py Python API. ArrayMorph is an HDF5 VOL plugin that is loaded dynamically (for HDF5 v1.14 or newer) without requiring further changes to applications.
+ArrayMorph is a software to manage array data stored on cloud object storage efficiently. It supports both HDF5 C++ API and h5py API. The data returned by h5py API is numpy arrays. By using h5py API, user can access array data stored on cloud and feed the read data into machine learning pipelines seamlessly. For usage of ArrayMorph, please refer to examples in example folder.
 
 ## Requirements
 
 	CMake>=3.0
 	h5py>=3.11.0 (if using python)
-	HDF5=1.14.3
-	aws-sdk-cpp-s3=1.9.379
+	HDF5>=1.14.2
+	aws-sdk-cpp-s3
+ 	azure-storage-blobs-cpp
 
 ## Install dependencies
 
-It is recommended to use Conda to install and manage dependencies for ArrayMorph.
+It is recommended to use vcpkg to install and manage dependencies for ArrayMorph.
 
 	1. Download and install Conda following instructions from Conda official website (https://docs.anaconda.com/miniconda/)
 	2. Run the following commands to install all dependencies for ArrayMorph
 		$ conda create -n arraymorph conda-forge::gxx=8
-		$ conda install -n arraymorph cmake conda-forge::hdf5=1.14 conda-forge::aws-sdk-cpp=1.9.379 conda-forge::h5py
+		$ conda install -n arraymorph cmake conda-forge::hdf5=1.14.2 conda-forge::aws-sdk-cpp conda-forge::azure-storage-blobs-cpp conda-forge::h5py
 
 ### Build ArrayMorph
 
@@ -42,6 +43,9 @@ To run ArrayMorph, you need to create access keys from the AWS console, and an e
 	export AWS_ACCESS_KEY_ID=XXXXXX
 	export AWS_SECRET_ACCESS_KEY=XXXXXX
 	export AWS_REGION=us-east-2 # change to AWS region of your bucket
+
+  	# Configure Azure
+   	export AZURE_CONNECTION_STRING=XXXXXX
 
 ## Run a simple example about writing and reading hdf5 files from cloud
 
