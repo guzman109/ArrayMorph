@@ -26,7 +26,7 @@ It is recommended to use Conda (and conda-forge) for managing dependencies.
 ## Install ArrayMorph via ArrayMorph local conda package
    ```bash
    git clone https://github.com/ICICLE-ai/arraymorph.git
-   cd arraymorph/arrayarraymorph_channel
+   cd arraymorph/arraymorph_channel
    conda index .
    conda install -n arraymorph arraymorph -c file://$(pwd) -c conda-forge
    ```
