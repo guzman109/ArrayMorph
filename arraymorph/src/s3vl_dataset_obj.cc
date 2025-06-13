@@ -105,7 +105,6 @@ void processAzure(std::vector<std::shared_ptr<S3VLChunkObj>> &chunk_objs, const 
 
 void processS3(std::vector<std::shared_ptr<S3VLChunkObj>> &chunk_objs, const std::vector<CPlan> &s3_plans,
 	void* buf, Aws::S3::S3Client *s3_client, const std::string& bucket_name) {
-	std::string lambda_path = getenv("AWS_LAMBDA_ACCESS_POINT");
 	size_t s3_thread_num = THREAD_NUM;
 	size_t cur_batch_size = 0;
 	OperationTracker::getInstance().reset();

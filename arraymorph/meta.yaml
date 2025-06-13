@@ -1,0 +1,52 @@
+package:
+  name: arraymorph
+  version: 1.0.0
+
+target_platform:
+  - linux-64
+
+source:
+  path: .
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('arraymorph', max_pin='x.x') }}
+  post-link: |
+    #!/bin/bash
+    export HDF5_PLUGIN_PATH=$CONDA_PREFIX/lib/arraymorph/
+    export HDF5_VOL_CONNECTOR=arraymorph
+
+requirements:
+  build:
+    # Linux-specific GCC 9 toolchain
+    - gcc_linux-64=9.*     # [linux64]
+    - gxx_linux-64=9.*     # [linux64]
+    - libgcc-ng=9.*        # [linux64]
+    - libstdcxx-ng=9.*     # [linux64]
+    - cmake                # If using CMake
+    - make                 # [unix]
+  host:
+    - python >=3.8,<3.13  # This will prevent Python 3.13
+    - conda-forge::hdf5=1.14.2
+    - conda-forge::aws-sdk-cpp
+    - conda-forge::azure-storage-blobs-cpp
+  run:
+    - python >=3.8,<3.13  # Applies to users installing your package
+    - conda-forge::hdf5=1.14.2
+    - conda-forge::aws-sdk-cpp
+    - conda-forge::azure-storage-blobs-cpp
+    - conda-forge::h5py
+
+test:
+  commands:
+    - test -f $PREFIX/lib/arraymorph/libarraymorph.so
+    - ldd $PREFIX/lib/arraymorph/libarraymorph.so  # Verify dependencies
+
+about:
+  home: https://github.com/ICICLE-ai/ArrayMorph
+  license: MIT
+  summary: ArrayMorph enables efficient storage and retrieval of array data from cloud object stores, supporting platforms including AWS S3 and Azure Blob Storage. It is designed to accelerate scientific and AI workloads that rely on partial array access.
+  files:
+    - lib/arraymorph/libarraymorph.so
+    - etc/conda/activate.d/arraymorph-activate.sh
