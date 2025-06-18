@@ -16,7 +16,8 @@ ArrayMorph is a software to manage array data stored on cloud object storage eff
 It is recommended to use Conda (and conda-forge) for managing dependencies.
 
 1. Install [Miniconda](https://docs.anaconda.com/miniconda/)  
-2. Create and activate environment with dependencies:
+2. Install [conda-build](https://docs.conda.io/projects/conda-build/en/stable/install-conda-build.html) for installing local conda packages
+3. Create and activate environment with dependencies:
    ```bash
    conda create -n arraymorph conda-forge::gxx=9
    conda activate arraymorph
