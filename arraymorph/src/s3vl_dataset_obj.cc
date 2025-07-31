@@ -274,17 +274,18 @@ herr_t S3VLDatasetObj::write(hid_t mem_space_id, hid_t file_space_id, const void
 	while(cur_batch < num) {
 		for (int idx = cur_batch; idx < std::min(num, cur_batch + THREAD_NUM); idx++) {
 			size_t length = chunk_objs[idx]->size;
-			char *upload_buf = new char[length];
+			auto upload_buf = std::shared_ptr<char>(new char[length], std::default_delete<char[]>());
+			auto raw_buf = upload_buf.get();
 #ifdef DUMMY_WRITE
-			memset(upload_buf, 0, length);
+			memset(raw_buf, 0, length);
 #else
 			for (auto &m: mappings[idx]){
-				memcpy(upload_buf + m[0], (char*)buf + m[1], m[2]);
+				memcpy(raw_buf + m[0], (char*)buf + m[1], m[2]);
 			}
 #endif
 			if (SP == SPlan::AZURE_BLOB) {
 				auto azure_client = std::get_if<std::unique_ptr<BlobContainerClient>>(&client);
-				futures.push_back(std::async(std::launch::async, Operators::AzurePut, azure_client->get(), chunk_objs[idx]->uri, (uint8_t*)upload_buf, length));
+				futures.push_back(std::async(std::launch::async, Operators::AzurePut, azure_client->get(), chunk_objs[idx]->uri, upload_buf, length));
 			}
 			else {
 				auto s3_client = std::get_if<std::unique_ptr<Aws::S3::S3Client>>(&client);
@@ -352,6 +353,7 @@ void S3VLDatasetObj::upload() {
 	Logger::log("------ Upload metadata " + uri);
 	int length;
 	char* buffer = toBuffer(&length);
+	std::shared_ptr<char> upload_buf(buffer, std::default_delete<char[]>());
 	std::string meta_name = uri + "/meta";
 	Result re{std::vector<char>(buffer, buffer + length)};
 
@@ -370,7 +372,7 @@ void S3VLDatasetObj::upload() {
 			std::cerr << "Azure client not initialized correctly!" << std::endl;
 			return;
 		}
-		Operators::AzurePut(azure_client->get(), meta_name, (uint8_t*)buffer, length);
+		Operators::AzurePut(azure_client->get(), meta_name, upload_buf, length);
 	}
 }
 

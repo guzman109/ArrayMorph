@@ -181,7 +181,7 @@ herr_t Operators::S3Delete(const S3Client *client, const std::string& bucket_nam
 //     return ARRAYMORPH_SUCCESS;
 // }
 
-herr_t Operators::S3PutBuf(const S3Client *client, const std::string& bucket_name, const std::string& object_name, char* buf, hsize_t length)
+herr_t Operators::S3PutBuf(const S3Client *client, const std::string& bucket_name, const std::string& object_name, std::shared_ptr<char> buf, hsize_t length)
 {
     Logger::log("------ S3Put ", object_name);
     PutObjectRequest request;
@@ -189,7 +189,7 @@ herr_t Operators::S3PutBuf(const S3Client *client, const std::string& bucket_nam
     request.SetKey(object_name);
     
     auto input_data = Aws::MakeShared<Aws::StringStream>("PutObjectInputStream", std::stringstream::in | std::stringstream::out | std::stringstream::binary);
-    input_data->write(buf, length);
+    input_data->write(buf.get(), length);
     request.SetBody(input_data);
 
     auto outcome = client->PutObject(request);
@@ -199,7 +199,6 @@ herr_t Operators::S3PutBuf(const S3Client *client, const std::string& bucket_nam
             err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
         return ARRAYMORPH_FAIL;
     }
-    delete[] buf;
     return ARRAYMORPH_SUCCESS;
 }
 
@@ -254,12 +253,11 @@ Result Operators::AzureGet(const BlobContainerClient *client, const std::string&
     return re;
 }
 
-herr_t Operators::AzurePut(const BlobContainerClient *client, const std::string& blob_name, uint8_t *buf, size_t length)
+herr_t Operators::AzurePut(const BlobContainerClient *client, const std::string& blob_name, std::shared_ptr<char> buf, size_t length)
 {
     Logger::log("------ AzurePut ", blob_name);
     BlockBlobClient blclient = client->GetBlockBlobClient(blob_name);
-    blclient.UploadFrom(buf, length);
-    delete[] buf;
+    blclient.UploadFrom((uint8_t*)(buf.get()), length);
     return ARRAYMORPH_SUCCESS;
 }
 

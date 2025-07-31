@@ -95,14 +95,14 @@ public:
 	static herr_t S3GetByteRangeAsync(const S3Client *client, const std::string& bucket_name, const Aws::String &object_name, 
 		uint64_t beg, uint64_t end, const std::shared_ptr<const AsyncCallerContext> input);
     static herr_t S3Put(const S3Client *client, const std::string& bucket_name, const std::string& object_name, Result &re);
-    static herr_t S3PutBuf(const S3Client *client, const std::string& bucket_name, const std::string& object_name, char* buf, hsize_t length);
+    static herr_t S3PutBuf(const S3Client *client, const std::string& bucket_name, const std::string& object_name, std::shared_ptr<char> buf, hsize_t length);
     static herr_t S3PutAsync(const S3Client *client, const std::string& bucket_name, const Aws::String &object_name, Result &re);
     static herr_t S3Delete(const S3Client *client, const std::string& bucket_name, const Aws::String &object_name);
     static void GetAsyncCallback(const Aws::S3::S3Client* s3Client, const Aws::S3::Model::GetObjectRequest& request, Aws::S3::Model::GetObjectOutcome outcome, const std::shared_ptr<const Aws::Client::AsyncCallerContext>& context);
 
 //Azure
     static Result AzureGet(const BlobContainerClient *client, const std::string& blob_name);
-    static herr_t AzurePut(const BlobContainerClient *client, const std::string& blob_name, uint8_t *buf, size_t length);
+    static herr_t AzurePut(const BlobContainerClient *client, const std::string& blob_name, std::shared_ptr<char> buf, size_t length);
     static herr_t AzureGetAndProcess(const BlobContainerClient *client, const std::string& blob_name, const std::shared_ptr<const AsyncCallerContext> context);
     static herr_t AzureGetRange(const BlobContainerClient *client, const std::string& blob_name, uint64_t beg, uint64_t end, const std::shared_ptr<const AsyncCallerContext> context);
 };
