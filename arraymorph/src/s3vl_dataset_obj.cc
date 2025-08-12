@@ -72,8 +72,6 @@ std::vector<std::vector<hsize_t>> S3VLDatasetObj::selectionFromSpace(hid_t space
 
 void processAzure(std::vector<std::shared_ptr<S3VLChunkObj>> &chunk_objs, const std::vector<CPlan> &azure_plans,
 	void* buf, BlobContainerClient *client, const std::string& bucket_name) {
-	std::string lambda_url = getenv("AZURE_LAMBDA_URL");
-	std::string lambda_endpoint = getenv("AZURE_LAMBDA_ENDPOINT");
 	std::vector<std::future<herr_t>> futures;
 	size_t azure_thread_num = THREAD_NUM;
 	futures.reserve(azure_thread_num);

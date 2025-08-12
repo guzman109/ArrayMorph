@@ -53,6 +53,7 @@ export HDF5_VOL_CONNECTOR=arraymorph
 
 ### AWS Configuration:
 ```bash
+export STORAGE_PLATFORM=S3
 export BUCKET_NAME=XXXXXX
 export AWS_ACCESS_KEY_ID=XXXXXX
 export AWS_SECRET_ACCESS_KEY=XXXXXX
@@ -61,7 +62,9 @@ export AWS_REGION=us-east-2  # or your bucket's region
 
 ### Azure Configuration:
 ```bash
-export AZURE_CONNECTION_STRING=XXXXXX
+export STORAGE_PLATFORM=Azure
+export BUCKET_NAME=XXXXXX
+export AZURE_STORAGE_CONNECTION_STRING=XXXXXX
 ```
 
 ---
