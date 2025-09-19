@@ -1,0 +1,46 @@
+name: Bug Report
+description: File a bug/issue.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bug/Issue intro message.
+  - type: checkboxes
+    attributes:
+      label: Did you check docs and existing issues?
+      description: Make sure you checked all ofhe below before submitting an issue.
+      options:
+        - label: I have read all the [ArrayMorph docs](https://icicle-ai.github.io/training-catalog/docs/category/arraymorph-2).
+          required: true
+        - label: I have searched the existing issues.
+          required: true
+  - type: input
+    attributes:
+      label: "ArrayMorph version"
+      placeholder: "v0.1.1"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the bug/issue.
+      description: A clear and concise description of the bug/issue. Please provide any logs.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Step To Reproduce
+      description: Please provide the steps to reproduce this bug.
+      placeholder: |
+        1.
+        2.
+        3.
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of the expected behavior.
+    validations:
+      required: true
