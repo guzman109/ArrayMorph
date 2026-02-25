@@ -1,9 +1,68 @@
+[build-system]
+requires = ["scikit-build-core", "cmake>=3.20", "ninja"]
+build-backend = "scikit_build_core.build"
+
 [project]
 name = "arraymorph"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
 readme = "README.md"
-requires-python = ">=3.14"
-dependencies = [
-    "h5py>=3.15.1",
+license = { text = "MIT" }
+authors = [{ name = "ICICLE AI Institute" }]
+requires-python = ">=3.8"
+dependencies = ["h5py>=3.11.0"]
+
+[project.urls]
+Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
+Repository = "https://github.com/ICICLE-ai/ArrayMorph"
+Issues = "https://github.com/ICICLE-ai/ArrayMorph/issues"
+
+
+# --- scikit-build-core settings ---
+
+[tool.scikit-build]
+# CMakeLists.txt is inside arraymorph/ subdirectory
+cmake.source-dir = "lib"
+cmake.build-type = "Release"
+cmake.verbose = true
+
+# Install the Python package from src/
+wheel.packages = ["src/arraymorph"]
+
+# Pass h5py HDF5 location to CMake
+# This gets set by the before-build script in cibuildwheel
+[tool.scikit-build.cmake.define]
+CMAKE_POSITION_INDEPENDENT_CODE = "ON"
+CMAKE_TOOLCHAIN_FILE = {env = "CMAKE_TOOLCHAIN_FILE", default = ""}
+
+# --- cibuildwheel settings ---
+
+[tool.cibuildwheel]
+# ARRAYMORPH_USE_CONAN signals CMake to use the Conan toolchain.
+# H5PY_HDF5_DIR is intentionally NOT set here — h5py must be installed
+# first (in before-build) before we can discover its bundled HDF5 path.
+environment = { ARRAYMORPH_USE_CONAN = "1" }
+
+# Only build CPython, skip 32-bit and musl
+skip = ["pp*", "*-win32", "*-manylinux_i686", "*-musllinux*"]
+
+# Before building:
+# 1. Install h5py so we can locate its bundled HDF5 shared library
+# 2. Set H5PY_HDF5_DIR so CMake knows which HDF5 binary to link against
+# 3. Install conan and resolve C++ dependencies
+before-build = [
+  "pip install h5py",
+  "export H5PY_HDF5_DIR=$(python -c \"import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))\")",
+  "pip install conan",
+  "cd {project}/arraymorph && conan install . --build=missing -of build",
 ]
+
+
+[tool.cibuildwheel.linux]
+# manylinux2014 has the toolchain we need
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+
+[tool.cibuildwheel.macos]
+# Build for both Intel and Apple Silicon
+archs = ["x86_64", "arm64"]
