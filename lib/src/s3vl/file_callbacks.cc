@@ -3,8 +3,9 @@
 #include "arraymorph/core/logger.h"
 #include "arraymorph/core/operators.h"
 #include <aws/core/auth/signer/AWSAuthV4Signer.h>
+#include <cstring>
 #include <stdlib.h>
-#include <string_view>
+#include <memory>
 
 CloudClient get_client() {
   Logger::log("Init cloud clients");
@@ -14,6 +15,7 @@ CloudClient get_client() {
     std::string access_key = getenv("AWS_ACCESS_KEY_ID");
     std::string secret_key = getenv("AWS_SECRET_ACCESS_KEY");
     Aws::Auth::AWSCredentials cred(access_key, secret_key);
+    
     std::unique_ptr<Aws::Client::ClientConfiguration> s3ClientConfig =
         std::make_unique<Aws::Client::ClientConfiguration>();
 
@@ -21,11 +23,9 @@ CloudClient get_client() {
         getenv("AWS_USE_TLS"); // Is TLS necessary. Does not use it by default.
 
     // Env var is char pointer by default. Checking to see if value was
-    // provided, ('true' or 'false'). If so, cast to std::string_view to avoid
-    // heap allocation and check for value.
-    s3ClientConfig->scheme = use_tls && std::string_view(use_tls) == "true"
-                                 ? Scheme::HTTPS
-                                 : Scheme::HTTP;
+    // provided, ('true' or 'false').
+    s3ClientConfig->scheme =
+        use_tls && strcmp(use_tls, "true") == 0 ? Scheme::HTTPS : Scheme::HTTP;
     const char *endpoint = getenv("AWS_ENDPOINT_URL_S3"); // Custom S3 endpoint
     if (endpoint) {
       s3ClientConfig->endpointOverride = endpoint;
@@ -43,16 +43,17 @@ CloudClient get_client() {
                                        // affect on performance, needs to be
                                        // tested. Off by default
     auto payload_signing_policy =
-        *signed_payloads && std::string_view(signed_payloads) == "true"
+        signed_payloads && strcmp(signed_payloads, "true") == 0
             ? Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Always
             : Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never;
 
-    const char *path_style =
-        getenv("AWS_USE_PATH_STYLE"); // Some S3-compatible stores require path
-                                      // styles, 'bucket.endpoint' vs
-                                      // 'endpoint/bucket'(with path-style).
+    const char *addressing_style = getenv(
+        "AWS_S3_ADDRESSING_STYLE"); // Some S3-compatible stores require path
+                                    // styles, 'bucket.endpoint' (virtual) vs
+                                    // 'endpoint/bucket'(with path-style).
     bool use_path_style =
-        *path_style && std::string_view(path_style) == "true" ? true : false;
+        addressing_style && strcmp(addressing_style, "path") == 0 ? true
+                                                                  : false;
 
     s3ClientConfig->maxConnections = s3Connections;
     s3ClientConfig->requestTimeoutMs = requestTimeoutMs;

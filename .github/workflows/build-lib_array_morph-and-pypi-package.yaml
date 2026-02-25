@@ -1,0 +1,99 @@
+name: Build, Test, and Publish
+
+on:
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:  # Manual trigger — builds and tests only, does not publish to PyPI
+
+jobs:
+  build_wheels:
+    name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          # Linux ARM64
+          - os: linux
+            arch: aarch64
+            runner: ubuntu-24.04-arm
+          # macOS Intel
+          - os: macos
+            arch: x86_64
+            runner: macos-13
+          # macOS Apple Silicon
+          - os: macos
+            arch: arm64
+            runner: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install cibuildwheel
+        run: uv tool install cibuildwheel
+
+      - name: Build wheels
+        run: cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          retention-days: 7
+
+      # Extract the native lib from the wheel and attach to the GitHub release
+      - name: Extract native library from wheel
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          wheel_file=$(ls wheelhouse/*.whl | head -1)
+          mkdir -p extracted_lib
+          unzip -j "$wheel_file" "arraymorph/lib/lib_array_morph*" -d extracted_lib/
+          lib_file=$(ls extracted_lib/lib_array_morph*)
+          ext="${lib_file##*.}"
+          cp "$lib_file" "lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
+          echo "LIB_ARTIFACT=lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
+
+      - name: Attach native library to GitHub release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.LIB_ARTIFACT }}
+
+  publish:
+    name: Publish to PyPI
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/arraymorph
+    permissions:
+      id-token: write  # Required for OIDC trusted publishing
+
+    steps:
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Publish to PyPI
+        run: uv publish dist/*
