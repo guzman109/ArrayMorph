@@ -44,17 +44,16 @@ CMAKE_TOOLCHAIN_FILE = {env = "CMAKE_TOOLCHAIN_FILE", default = ""}
 environment = { ARRAYMORPH_USE_CONAN = "1" }
 
 # Only build CPython, skip 32-bit and musl
-skip = ["pp*", "*-win32", "*-manylinux_i686", "*-musllinux*"]
+skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
 
 # Before building:
 # 1. Install h5py so we can locate its bundled HDF5 shared library
 # 2. Set H5PY_HDF5_DIR so CMake knows which HDF5 binary to link against
 # 3. Install conan and resolve C++ dependencies
 before-build = [
-  "pip install h5py",
-  "export H5PY_HDF5_DIR=$(python -c \"import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))\")",
-  "pip install conan",
-  "cd {project}/arraymorph && conan install . --build=missing -of build",
+  """pip install h5py conan && \
+     export H5PY_HDF5_DIR=$(python -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))") && \
+     cd {project}/lib && conan install . --build=missing -of build""",
 ]
 
 
