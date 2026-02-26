@@ -154,7 +154,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          uv pip install --system wheelhouse/*.whl --force-reinstall
+          uv pip install wheelhouse/*.whl --force-reinstall
           python3 -c "import arraymorph; print('arraymorph imported successfully')"
 
       - name: Upload wheel artifact
