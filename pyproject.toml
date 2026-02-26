@@ -1,0 +1,35 @@
+[build-system]
+requires = ["scikit-build-core", "setuptools-scm"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "arraymorph"
+dynamic = ["version"]
+description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ICICLE AI Institute" }]
+requires-python = ">=3.9"
+dependencies = ["h5py>=3.11.0"]
+
+[project.urls]
+Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
+Repository = "https://github.com/ICICLE-ai/ArrayMorph"
+Issues = "https://github.com/ICICLE-ai/ArrayMorph/issues"
+
+
+# --- scikit-build-core settings ---
+
+[tool.scikit-build]
+cmake.source-dir = "lib"
+cmake.build-type = "Release"
+build.verbose = true
+wheel.packages = ["src/arraymorph"]
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.scikit-build.cmake.define]
+CMAKE_POSITION_INDEPENDENT_CODE = "ON"
+CMAKE_TOOLCHAIN_FILE = { env = "CMAKE_TOOLCHAIN_FILE", default = "" }
+H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
+
+[tool.setuptools_scm]

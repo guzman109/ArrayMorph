@@ -1,0 +1,261 @@
+name: Build, Test, and Publish
+
+on:
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build (${{ matrix.os }} / ${{ matrix.arch }} / py${{ matrix.python }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.9" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.10" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.11" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.12" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.13" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.14" }
+          # Linux aarch64
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.9" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.10" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.11" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.12" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.13" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.14" }
+          # macOS arm64
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.9" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.10" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.11" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.12" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.13" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.14" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools-scm needs full history
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Set up Python
+        run: uv python install ${{ matrix.python }}
+
+      # ──────────────────────────────────────────────
+      # 1. System deps
+      # ──────────────────────────────────────────────
+
+      - name: Install system deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            pkg-config patchelf \
+            libx11-dev libx11-xcb-dev libfontenc-dev \
+            libice-dev libsm-dev libxau-dev libxaw7-dev \
+            libxcomposite-dev libxcursor-dev libxdamage-dev \
+            libxdmcp-dev libxext-dev libxfixes-dev libxi-dev \
+            libxinerama-dev libxkbfile-dev libxmu-dev \
+            libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev \
+            libxres-dev libxss-dev libxt-dev libxtst-dev \
+            libxv-dev libxxf86vm-dev libxcb-glx0-dev \
+            libxcb-render0-dev libxcb-render-util0-dev \
+            libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev \
+            libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev \
+            libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev \
+            libxcb-dri3-dev uuid-dev libxcb-cursor-dev \
+            libxcb-dri2-0-dev libxcb-present-dev \
+            libxcb-composite0-dev libxcb-ewmh-dev libxcb-res0-dev \
+            libasound2-dev
+
+      - name: Install system deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja cmake
+
+      - name: Install Python tools
+        run: |
+          uv venv --python ${{ matrix.python }}
+          echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
+          uv pip install \
+            scikit-build-core setuptools-scm h5py \
+            build auditwheel delocate
+
+      # ──────────────────────────────────────────────
+      # 2. Conan: install C++ deps (cached per platform)
+      # ──────────────────────────────────────────────
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('lib/conanfile.py') }}
+          restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
+
+      - name: Conan install
+        working-directory: lib
+        run: |
+          uv tool install conan
+          conan profile detect --force
+          conan install . --build=missing -of build \
+            -c tools.system.package_manager:mode=install \
+            -c tools.system.package_manager:sudo=True
+
+      - name: Find Conan toolchain
+        run: |
+          TOOLCHAIN=$(find ${{ github.workspace }}/lib/build -name "conan_toolchain.cmake" | head -1)
+          if [ -z "$TOOLCHAIN" ]; then
+            echo "ERROR: conan_toolchain.cmake not found"
+            find ${{ github.workspace }}/lib/build -type f -name "*.cmake" || true
+            exit 1
+          fi
+          echo "CMAKE_TOOLCHAIN_FILE=$TOOLCHAIN" >> $GITHUB_ENV
+          echo "Found toolchain at: $TOOLCHAIN"
+
+      # ──────────────────────────────────────────────
+      # 3. Discover h5py HDF5 + build wheel
+      # ──────────────────────────────────────────────
+
+      - name: Discover h5py HDF5 location
+        run: |
+          H5PY_HDF5_DIR=$(python3 -c "
+          import h5py, os
+          d = os.path.dirname(h5py.__file__)
+          dylibs = os.path.join(d, '.dylibs')
+          libs = os.path.join(os.path.dirname(d), 'h5py.libs')
+          print(dylibs if os.path.exists(dylibs) else libs)
+          ")
+          echo "H5PY_HDF5_DIR=$H5PY_HDF5_DIR" >> $GITHUB_ENV
+          echo "Discovered h5py HDF5 at: $H5PY_HDF5_DIR"
+          ls -la "$H5PY_HDF5_DIR"
+
+      - name: Build wheel
+        run: |
+          uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
+      # ──────────────────────────────────────────────
+      # 4. Repair wheel for PyPI
+      # ──────────────────────────────────────────────
+
+      - name: Repair wheel (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          export LD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${LD_LIBRARY_PATH}"
+          auditwheel show dist/*.whl
+          auditwheel repair dist/*.whl -w wheelhouse/ \
+            --exclude libhdf5.so \
+            --exclude libhdf5.so.310 \
+            --exclude libhdf5_hl.so \
+            --exclude libhdf5_hl.so.310
+
+      - name: Repair wheel (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          export DYLD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${DYLD_LIBRARY_PATH}"
+          delocate-listdeps dist/*.whl
+          delocate-wheel -w wheelhouse/ dist/*.whl \
+            --exclude libhdf5 \
+            --exclude libhdf5_hl
+
+      # ──────────────────────────────────────────────
+      # 5. Test + upload
+      # ──────────────────────────────────────────────
+
+      - name: Smoke test
+        run: |
+          uv pip install wheelhouse/*.whl --force-reinstall
+          python3 -c "import arraymorph; print('arraymorph imported successfully')"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python }}
+          path: wheelhouse/*.whl
+          retention-days: 7
+
+      - name: Extract native library from wheel
+        if: github.event_name == 'release' && matrix.python == '3.12'
+        shell: bash
+        run: |
+          wheel_file=$(ls wheelhouse/*.whl | head -1)
+          mkdir -p extracted_lib
+          unzip -j "$wheel_file" "arraymorph/lib/lib_arraymorph*" -d extracted_lib/
+          lib_file=$(ls extracted_lib/lib_arraymorph*)
+          ext="${lib_file##*.}"
+          cp "$lib_file" "lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
+          echo "LIB_ARTIFACT=lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
+
+      - name: Attach native library to GitHub release
+        if: github.event_name == 'release' && matrix.python == '3.12'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.LIB_ARTIFACT }}
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Build sdist
+        run: uv build --sdist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          retention-days: 7
+
+  publish:
+    name: Publish to PyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/arraymorph
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Publish to PyPI
+        run: uv publish dist/*
