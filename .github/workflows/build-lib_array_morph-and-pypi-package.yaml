@@ -223,7 +223,28 @@ jobs:
           ext="${lib_file##*.}"
           cp "$lib_file" "lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
           echo "LIB_ARTIFACT=lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
-
+          
+      - name: Fix HDF5 paths in standalone binary (macOS)
+        if: runner.os == 'macOS' && github.event_name == 'release' && matrix.python == '3.12'
+        run: |
+          LIB="lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.dylib"
+          HDF5_REF=$(otool -L "$LIB" | grep libhdf5 | awk '{print $1}')
+          HDF5_FILENAME=$(basename "$HDF5_REF")
+          install_name_tool -change "$HDF5_REF" "@rpath/$HDF5_FILENAME" "$LIB"
+          echo "Fixed: $HDF5_REF → @rpath/$HDF5_FILENAME"
+          otool -L "$LIB" | grep hdf5
+      
+      - name: Fix HDF5 paths in standalone binary (Linux)
+        if: runner.os == 'Linux' && github.event_name == 'release' && matrix.python == '3.12'
+        run: |
+          LIB="lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.so"
+          patchelf --replace-needed \
+            "$(patchelf --print-needed "$LIB" | grep libhdf5)" \
+            "libhdf5.so" \
+            "$LIB"
+          echo "Fixed HDF5 dependency"
+          ldd "$LIB" | grep hdf5 || patchelf --print-needed "$LIB" | grep hdf5
+          
       - name: Attach native library to GitHub release
         if: github.event_name == 'release' && matrix.python == '3.12'
         uses: softprops/action-gh-release@v2
