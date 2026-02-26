@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "ICICLE AI Institute" }]
+authors = [{ name = "ruochenj123, wangtg2013" }]
 requires-python = ">=3.9"
 dependencies = ["h5py>=3.11.0"]
 
