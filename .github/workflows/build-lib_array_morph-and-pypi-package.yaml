@@ -9,25 +9,39 @@ on:
 
 jobs:
   build_wheels:
-    name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+    name: Build (${{ matrix.os }} / ${{ matrix.arch }} / py${{ matrix.python }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: linux
-            arch: x86_64
-            runner: ubuntu-latest
-          - os: linux
-            arch: aarch64
-            runner: ubuntu-24.04-arm
-          - os: macos
-            arch: arm64
-            runner: macos-latest
+          # Linux x86_64
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.9" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.10" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.11" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.12" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.13" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.14" }
+          # Linux aarch64
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.9" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.10" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.11" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.12" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.13" }
+          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.14" }
+          # macOS arm64
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.9" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.10" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.11" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.12" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.13" }
+          - { os: macos, arch: arm64, runner: macos-latest, python: "3.14" }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools-scm needs full history
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -35,7 +49,7 @@ jobs:
           version: "0.10.6"
 
       - name: Set up Python
-        run: uv python install 3.9
+        run: uv python install ${{ matrix.python }}
 
       # ──────────────────────────────────────────────
       # 1. System deps
@@ -71,15 +85,22 @@ jobs:
 
       - name: Install Python tools
         run: |
-          uv venv --python 3.9
+          uv venv --python ${{ matrix.python }}
           echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
           uv pip install \
-            scikit-build-core h5py \
+            scikit-build-core setuptools-scm h5py \
             build auditwheel delocate
 
       # ──────────────────────────────────────────────
-      # 2. Conan: install C++ deps
+      # 2. Conan: install C++ deps (cached per platform)
       # ──────────────────────────────────────────────
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('lib/conanfile.py') }}
+          restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
 
       - name: Conan install
         working-directory: lib
@@ -125,7 +146,7 @@ jobs:
           uv build --wheel --no-build-isolation
 
       # ──────────────────────────────────────────────
-      # 4. Repair wheel for PyPI (manylinux / delocate)
+      # 4. Repair wheel for PyPI
       # ──────────────────────────────────────────────
 
       - name: Repair wheel (Linux)
@@ -160,24 +181,24 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python }}
           path: wheelhouse/*.whl
           retention-days: 7
 
       - name: Extract native library from wheel
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && matrix.python == '3.12'
         shell: bash
         run: |
           wheel_file=$(ls wheelhouse/*.whl | head -1)
           mkdir -p extracted_lib
-          unzip -j "$wheel_file" "arraymorph/lib/lib_array_morph*" -d extracted_lib/
-          lib_file=$(ls extracted_lib/lib_array_morph*)
+          unzip -j "$wheel_file" "arraymorph/lib/lib_arraymorph*" -d extracted_lib/
+          lib_file=$(ls extracted_lib/lib_arraymorph*)
           ext="${lib_file##*.}"
-          cp "$lib_file" "lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
-          echo "LIB_ARTIFACT=lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
+          cp "$lib_file" "lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
+          echo "LIB_ARTIFACT=lib_arraymorph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
 
       - name: Attach native library to GitHub release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && matrix.python == '3.12'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.LIB_ARTIFACT }}
@@ -188,9 +209,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
 
       - name: Set up Python
         run: uv python install 3.12
@@ -217,8 +242,10 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
 
       - name: Download all wheels
         uses: actions/download-artifact@v4

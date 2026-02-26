@@ -37,18 +37,18 @@ target_include_directories(group_callbacks PUBLIC ${PROJECT_INCLUDE_DIRS})
 target_link_libraries(group_callbacks PRIVATE dataset_callbacks ${ALL_DEPS})
 
 # 3. The Final VOL Connector (shared library)
-add_library(array_morph SHARED s3vl/vol_connector.cc)
-set_target_properties(array_morph PROPERTIES PREFIX "lib_")
-target_include_directories(array_morph PUBLIC ${PROJECT_INCLUDE_DIRS})
-target_link_libraries(array_morph PUBLIC
+add_library(arraymorph SHARED s3vl/vol_connector.cc)
+set_target_properties(arraymorph PROPERTIES PREFIX "lib_")
+target_include_directories(arraymorph PUBLIC ${PROJECT_INCLUDE_DIRS})
+target_link_libraries(arraymorph PUBLIC
     group_callbacks
     ${ALL_DEPS}
 )
 
 # 4. Install into the Python package's lib/ directory
 # scikit-build-core sets CMAKE_INSTALL_PREFIX to the wheel staging area
-# so this puts the .so/.dylib at: arraymorph/lib/lib_array_morph.so
-install(TARGETS array_morph
+# so this puts the .so/.dylib at: arraymorph/lib/lib_arraymorph.so
+install(TARGETS arraymorph
     LIBRARY DESTINATION arraymorph/lib    # .so (Linux) and .dylib (macOS)
     RUNTIME DESTINATION arraymorph/lib    # .dll (Windows)
 )
