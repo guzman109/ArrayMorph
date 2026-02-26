@@ -58,7 +58,7 @@ jobs:
           uv venv --python 3.9
           source .venv/bin/activate
           uv pip install \
-            conan scikit-build-core h5py \
+            scikit-build-core h5py \
             build auditwheel delocate
 
       # ──────────────────────────────────────────────
@@ -68,6 +68,7 @@ jobs:
       - name: Conan install
         working-directory: lib
         run: |
+          uv tool install conan
           conan profile detect --force
           conan install . --build=missing -of build \
             -c tools.system.package_manager:mode=install
