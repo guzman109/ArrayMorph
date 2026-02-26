@@ -141,10 +141,7 @@ jobs:
 
       - name: Build wheel
         run: |
-          echo "Toolchain: $CMAKE_TOOLCHAIN_FILE"
-          echo "H5PY HDF5:  $H5PY_HDF5_DIR"
-          uv build --wheel --no-build-isolation
-
+          uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
       # ──────────────────────────────────────────────
       # 4. Repair wheel for PyPI
       # ──────────────────────────────────────────────
