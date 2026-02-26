@@ -33,3 +33,4 @@ CMAKE_TOOLCHAIN_FILE = { env = "CMAKE_TOOLCHAIN_FILE", default = "" }
 H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
 
 [tool.setuptools_scm]
+local_scheme = "no-local-version"
