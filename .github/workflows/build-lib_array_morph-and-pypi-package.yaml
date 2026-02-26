@@ -101,9 +101,14 @@ jobs:
         run: |
           uv tool install conan
           conan profile detect --force
-          conan install . --build=missing -of build \
-            -c tools.system.package_manager:mode=install \
-            -c tools.system.package_manager:sudo=True
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            conan install . --build=missing -of build \
+              -c tools.system.package_manager:mode=install \
+              -c tools.system.package_manager:sudo=True
+          else
+            conan install . --build=missing -of build \
+              -c tools.system.package_manager:mode=check
+          fi
 
       - name: Find Conan toolchain
         run: |
