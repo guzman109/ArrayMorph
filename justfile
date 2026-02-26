@@ -21,11 +21,11 @@ default:
 deps:
     cd lib && conan install . --build=missing -s build_type=Release
 
-# Build Python wheel (runs scikit-build-core + CMake)
+# Build Python wheel (scikit-build-core handles CMake)
 wheel:
     CMAKE_TOOLCHAIN_FILE={{ CMAKE_TOOLCHAIN_FILE }} \
     H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
-    uv build
+    uv build --wheel --no-build-isolation
 
 # Install editable into current venv (for development iteration)
 dev:
