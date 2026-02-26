@@ -23,12 +23,42 @@ jobs:
           - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.13" }
           - { os: linux, arch: x86_64, runner: ubuntu-latest, python: "3.14" }
           # Linux aarch64
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.9" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.10" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.11" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.12" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.13" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, python: "3.14" }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.9",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.10",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.11",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.12",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.13",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              python: "3.14",
+            }
           # macOS arm64
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.9" }
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.10" }
@@ -41,7 +71,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # setuptools-scm needs full history
+          fetch-depth: 0 # setuptools-scm needs full history
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -227,9 +257,75 @@ jobs:
           path: dist/*.tar.gz
           retention-days: 7
 
+  publish_test:
+    name: Publish to TestPyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/arraymorph
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        run: uv publish dist/* --publish-url https://test.pypi.org/legacy/
+
+  test_testpypi:
+    name: Test TestPyPI (${{ matrix.os }})
+    needs: [publish_test]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - { os: linux, runner: ubuntu-latest }
+          - { os: macos, runner: macos-latest }
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install from TestPyPI
+        run: |
+          uv venv --python 3.12
+          source .venv/bin/activate
+          uv pip install \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            arraymorph
+
+      - name: Test
+        run: |
+          source .venv/bin/activate
+          python -c "import arraymorph; print('arraymorph imported successfully')"
+
   publish:
     name: Publish to PyPI
-    needs: [build_wheels, build_sdist]
+    needs: [test_testpypi] # ← now waits for TestPyPI to pass
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     environment:
