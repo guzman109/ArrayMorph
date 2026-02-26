@@ -33,7 +33,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Python
-        run: uv python install 3.12
+        run: uv python install 3.9
 
       # ──────────────────────────────────────────────
       # 1. System deps
@@ -44,17 +44,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libhdf5-dev \
             cmake ninja-build \
             pkg-config patchelf
 
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
-        run: brew install hdf5 ninja
+        run: brew install ninja cmake
 
       - name: Install Python tools
         run: |
-          uv pip install --system \
+          uv pip install \
             conan scikit-build-core h5py \
             build auditwheel delocate
 
