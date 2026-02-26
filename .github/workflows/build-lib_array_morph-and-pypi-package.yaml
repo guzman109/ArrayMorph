@@ -72,6 +72,7 @@ jobs:
             alsa-lib-devel \
             uuid-devel \
             perl-IPC-Cmd \
+            perl-Time-Piece \
             libfontenc-devel libXaw-devel libxkbfile-devel \
             libXres-devel libXxf86vm-devel libXv-devel \
             xcb-util-wm-devel xcb-util-image-devel \
