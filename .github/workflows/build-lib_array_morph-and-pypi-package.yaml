@@ -92,10 +92,10 @@ jobs:
 
       - name: Find Conan toolchain
         run: |
-          TOOLCHAIN=$(find lib/build -name "conan_toolchain.cmake" | head -1)
+          TOOLCHAIN=$(find ${{ github.workspace }}/lib/build -name "conan_toolchain.cmake" | head -1)
           if [ -z "$TOOLCHAIN" ]; then
             echo "ERROR: conan_toolchain.cmake not found"
-            find lib/build -type f -name "*.cmake" || true
+            find ${{ github.workspace }}/lib/build -type f -name "*.cmake" || true
             exit 1
           fi
           echo "CMAKE_TOOLCHAIN_FILE=$TOOLCHAIN" >> $GITHUB_ENV
