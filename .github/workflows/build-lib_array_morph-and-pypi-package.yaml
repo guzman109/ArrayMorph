@@ -67,7 +67,7 @@ jobs:
       - name: Install Python tools
         run: |
           uv venv --python ${{ matrix.python }}
-          echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
+          echo "${GITHUB_WORKSPACE}/.venv/bin" >> $GITHUB_PATH
           uv pip install \
             scikit-build-core setuptools-scm h5py \
             build auditwheel delocate
@@ -98,7 +98,7 @@ jobs:
         
       - name: Discover h5py HDF5 location
         run: |
-          H5PY_HDF5_DIR=$(${{ github.workspace }}/.venv/bin/python3 -c "
+          H5PY_HDF5_DIR=${GITHUB_WORKSPACE}/.venv/bin/python -c "
           import h5py, os
           d = os.path.dirname(h5py.__file__)
           dylibs = os.path.join(d, '.dylibs')
@@ -106,11 +106,9 @@ jobs:
           print(dylibs if os.path.exists(dylibs) else libs)
           ")
           echo "H5PY_HDF5_DIR=$H5PY_HDF5_DIR" >> $GITHUB_ENV
-          echo "Discovered h5py HDF5 at: $H5PY_HDF5_DIR"
-          ls -la "$H5PY_HDF5_DIR"
 
       - name: Build wheel
-        run: uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
+        run: uv build --wheel --no-build-isolation --python ${GITHUB_WORKSPACE}/.venv/bin/python
 
       # ──────────────────────────────────────────────
       # 4. Repair wheel for PyPI
