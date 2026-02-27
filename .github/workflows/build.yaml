@@ -1,6 +1,8 @@
 name: Build, Test, and Publish
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   release:
@@ -16,21 +18,93 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ── Linux x86_64 (manylinux_2_28 container) ──
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.9" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.10" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.11" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.12" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.13" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.14" }
-          # ── Linux aarch64 (manylinux_2_28 container) ──
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.9" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.10" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.11" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.12" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.13" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.14" }
-          # ── macOS arm64 ──
+          # Linux x86_64 (manylinux_2_28 container)
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.9",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.10",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.11",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.12",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.13",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.14",
+            }
+          # Linux aarch64 (manylinux_2_28 container)
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.9",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.10",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.11",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.12",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.13",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.14",
+            }
+          # macOS arm64
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.9" }
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.10" }
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.11" }
@@ -42,142 +116,84 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # setuptools-scm needs full history
+          fetch-depth: 0
 
-      # ──────────────────────────────────────────────
-      # 1. Python + system deps
-      # ──────────────────────────────────────────────
-
-      # manylinux containers have Python pre-installed at /opt/python/
-      - name: Select Python (Linux container)
-        if: runner.os == 'Linux'
-        run: |
-          # Map matrix python version to manylinux cpython path
-          PY_VER="${{ matrix.python }}"
-          PY_TAG="cp${PY_VER/./}"  # "3.12" → "cp312"
-
-          # Find the matching Python in /opt/python/
-          PY_DIR=$(ls -d /opt/python/${PY_TAG}-*/bin | head -1)
-          if [ -z "$PY_DIR" ]; then
-            echo "ERROR: Python $PY_VER not found in manylinux container"
-            ls /opt/python/
-            exit 1
-          fi
-
-          echo "$PY_DIR" >> $GITHUB_PATH
-          echo "Using Python from: $PY_DIR"
-          $PY_DIR/python --version
-
-      - name: Install system deps (Linux container)
-        if: runner.os == 'Linux'
-        run: |
-          # manylinux_2_28 is AlmaLinux 8 — uses yum
-          yum install -y \
-            cmake ninja-build \
-            pkgconfig \
-            libX11-devel libXext-devel libXrender-devel \
-            libXrandr-devel libXinerama-devel libXcursor-devel \
-            libXcomposite-devel libXdamage-devel libXfixes-devel \
-            libXi-devel libXtst-devel libXScrnSaver-devel \
-            libxcb-devel xcb-util-devel \
-            libXau-devel libXdmcp-devel \
-            mesa-libGL-devel \
-            alsa-lib-devel \
-            uuid-devel \
-            perl-IPC-Cmd  # needed by some Conan builds (e.g. OpenSSL)
-
-      - name: Install uv (macOS)
-        if: runner.os == 'macOS'
+      - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.10.6"
 
-      - name: Install uv (Linux container)
+      - name: Set up Python
+        run: uv python install ${{ matrix.python }}
+
+      # ──────────────────────────────────────────────
+      # 1. System deps
+      # ──────────────────────────────────────────────
+
+      - name: Install system deps (Linux manylinux)
         if: runner.os == 'Linux'
         run: |
-          curl -LsSf https://astral.sh/uv/0.10.6/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          yum -y install \
+            git curl ca-certificates \
+            zip unzip tar \
+            cmake ninja-build pkgconfig \
+            gcc gcc-c++ make \
+            perl perl-IPC-Cmd perl-ExtUtils-MakeMaker \
+            kernel-headers
 
-      - name: Set up Python (macOS)
-        if: runner.os == 'macOS'
-        run: uv python install ${{ matrix.python }}
+      - name: Sanity check compilers
+        if: runner.os == 'Linux'
+        run: |
+          gcc --version
+          g++ --version
+          perl -MIPC::Cmd -e 'print "IPC::Cmd OK\n"'
 
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
-        run: brew install ninja cmake
+        run: brew install ninja cmake curl openssl
 
-      - name: Create venv + install Python tools
+      - name: Install Python tools
         run: |
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            uv venv --python ${{ matrix.python }}
-          else
-            # Use the manylinux container's Python
-            python -m venv ${{ github.workspace }}/.venv
-          fi
-          echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
-          
-          # Upgrade pip inside venv for manylinux compatibility
-          ${{ github.workspace }}/.venv/bin/python -m pip install --upgrade pip
-          
-          # Install build tools
-          ${{ github.workspace }}/.venv/bin/pip install \
+          uv venv --python ${{ matrix.python }}
+          echo "${GITHUB_WORKSPACE}/.venv/bin" >> $GITHUB_PATH
+          uv pip install \
             scikit-build-core setuptools-scm h5py \
-            build auditwheel delocate conan
+            build auditwheel delocate
 
       # ──────────────────────────────────────────────
-      # 2. Conan: install C++ deps (cached per platform)
+      # 2. vcpkg: install C++ deps (cached per platform)
       # ──────────────────────────────────────────────
 
-      - name: Cache Conan packages
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git ${GITHUB_WORKSPACE}/vcpkg
+          ${GITHUB_WORKSPACE}/vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> $GITHUB_ENV
+          echo "CMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+
+      - name: Cache vcpkg packages
         uses: actions/cache@v4
         with:
-          path: ~/.conan2
-          key: conan-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('lib/conanfile.py') }}
-          restore-keys: conan-${{ matrix.os }}-${{ matrix.arch }}-
-
-      - name: Conan install
-        working-directory: lib
-        run: |
-          conan profile detect --force
-          conan install . --build=missing -of build \
-            -c tools.system.package_manager:mode=install \
-            -c tools.system.package_manager:sudo=True
-
-      - name: Find Conan toolchain
-        run: |
-          TOOLCHAIN=$(find ${{ github.workspace }}/lib/build -name "conan_toolchain.cmake" | head -1)
-          if [ -z "$TOOLCHAIN" ]; then
-            echo "ERROR: conan_toolchain.cmake not found"
-            find ${{ github.workspace }}/lib/build -type f -name "*.cmake" || true
-            exit 1
-          fi
-          echo "CMAKE_TOOLCHAIN_FILE=$TOOLCHAIN" >> $GITHUB_ENV
-          echo "Found toolchain at: $TOOLCHAIN"
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('lib/vcpkg.json') }}
+          restore-keys: vcpkg-${{ matrix.os }}-${{ matrix.arch }}-
 
       # ──────────────────────────────────────────────
       # 3. Discover h5py HDF5 + build wheel
       # ──────────────────────────────────────────────
-
       - name: Discover h5py HDF5 location
         run: |
-          H5PY_HDF5_DIR=$(python3 -c "
+          HDF5_DIR=$(${GITHUB_WORKSPACE}/.venv/bin/python -c "
           import h5py, os
           d = os.path.dirname(h5py.__file__)
           dylibs = os.path.join(d, '.dylibs')
           libs = os.path.join(os.path.dirname(d), 'h5py.libs')
           print(dylibs if os.path.exists(dylibs) else libs)
           ")
-          echo "H5PY_HDF5_DIR=$H5PY_HDF5_DIR" >> $GITHUB_ENV
-          echo "Discovered h5py HDF5 at: $H5PY_HDF5_DIR"
-          ls -la "$H5PY_HDF5_DIR"
-
-      - name: Set macOS deployment target
-        if: runner.os == 'macOS'
-        run: echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+          echo "HDF5_DIR=$HDF5_DIR" >> $GITHUB_ENV
 
       - name: Build wheel
-        run: |
-          python -m build --wheel --no-isolation
+        run: uv build --wheel --no-build-isolation --python ${GITHUB_WORKSPACE}/.venv/bin/python
 
       # ──────────────────────────────────────────────
       # 4. Repair wheel for PyPI
@@ -186,7 +202,7 @@ jobs:
       - name: Repair wheel (Linux)
         if: runner.os == 'Linux'
         run: |
-          export LD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="${HDF5_DIR}:${LD_LIBRARY_PATH}"
           auditwheel show dist/*.whl
           auditwheel repair dist/*.whl -w wheelhouse/ \
             --exclude libhdf5.so \
@@ -197,7 +213,7 @@ jobs:
       - name: Repair wheel (macOS)
         if: runner.os == 'macOS'
         run: |
-          export DYLD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${DYLD_LIBRARY_PATH}"
+          export DYLD_LIBRARY_PATH="${HDF5_DIR}:${DYLD_LIBRARY_PATH}"
           delocate-listdeps dist/*.whl
           delocate-wheel -w wheelhouse/ dist/*.whl \
             --exclude libhdf5 \
@@ -209,7 +225,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          pip install wheelhouse/*.whl --force-reinstall
+          uv pip install wheelhouse/*.whl --force-reinstall
           python3 -c "import arraymorph; print('arraymorph imported successfully')"
 
       - name: Upload wheel artifact

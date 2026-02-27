@@ -1,0 +1,12 @@
+{
+  "name": "arraymorph",
+  "version-string": "0.2.0",
+  "dependencies": [
+    {
+      "name": "aws-sdk-cpp",
+      "features": ["s3"]
+    },
+    "azure-storage-blobs-cpp",
+    "hdf5"
+  ]
+}

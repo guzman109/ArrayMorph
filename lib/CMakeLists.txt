@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(ArrayMorph
-    VERSION 0.1.0
+    VERSION 0.2.0
     LANGUAGES C CXX
 )
 
@@ -28,23 +28,28 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 find_package(AWSSDK REQUIRED COMPONENTS core s3)
 
 # Azure SDK
-find_package(AzureSDK CONFIG REQUIRED)
+find_package(azure-storage-blobs-cpp CONFIG REQUIRED)
 
 # cURL and OpenSSL
 find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-# --- HDF5: Conan headers + h5py runtime binary ---
+# --- HDF5: vcpkg headers + h5py runtime binary ---
 #
 # ArrayMorph is a VOL plugin that gets dlopen'd by HDF5 at runtime.
 # We MUST link against the same HDF5 that h5py ships to avoid
-# duplicate symbol conflicts. Conan provides headers, h5py provides
+# duplicate symbol conflicts. vcpkg provides headers, h5py provides
 # the shared library.
 
-if(NOT DEFINED ENV{H5PY_HDF5_DIR})
+# Accept HDF5_DIR from either CMake variable (-D) or env var
+if(NOT HDF5_DIR AND DEFINED ENV{HDF5_DIR})
+    set(HDF5_DIR "$ENV{HDF5_DIR}")
+endif()
+
+if(NOT HDF5_DIR)
     message(FATAL_ERROR
-        "H5PY_HDF5_DIR not set. Run:\n"
-        "  export H5PY_HDF5_DIR=$(python -c \""
+        "HDF5_DIR not set. Run:\n"
+        "  export HDF5_DIR=$(python3 -c \""
         "import h5py, os; "
         "d=os.path.dirname(h5py.__file__); "
         "print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) "
@@ -52,9 +57,9 @@ if(NOT DEFINED ENV{H5PY_HDF5_DIR})
     )
 endif()
 
-set(H5PY_LIB_DIR "$ENV{H5PY_HDF5_DIR}")
+set(H5PY_LIB_DIR "${HDF5_DIR}")
 
-# Find HDF5 headers (via Conan)
+# Find HDF5 headers (via vcpkg)
 find_package(HDF5 REQUIRED COMPONENTS C)
 
 # Locate the actual shared library in h5py's bundled directory
@@ -67,7 +72,7 @@ if(NOT _h5py_hdf5_libs)
     # List what's actually in the directory for debugging
     file(GLOB _h5py_dir_contents "${H5PY_LIB_DIR}/*")
     message(FATAL_ERROR
-        "No HDF5 shared library found in H5PY_HDF5_DIR=${H5PY_LIB_DIR}\n"
+        "No HDF5 shared library found in HDF5_DIR=${H5PY_LIB_DIR}\n"
         "Directory contents: ${_h5py_dir_contents}\n"
         "Expected libhdf5*.dylib (macOS) or libhdf5*.so* (Linux)"
     )
@@ -76,7 +81,7 @@ endif()
 # Pick the first match
 list(GET _h5py_hdf5_libs 0 _h5py_hdf5_lib)
 
-# Create imported target: Conan headers + h5py binary
+# Create imported target: vcpkg headers + h5py binary
 add_library(hdf5_custom SHARED IMPORTED)
 set_target_properties(hdf5_custom PROPERTIES
     IMPORTED_LOCATION "${_h5py_hdf5_lib}"
@@ -89,8 +94,8 @@ message(STATUS "HDF5 binary:  ${_h5py_hdf5_lib}")
 
 # Collect all dependencies into a list
 set(ALL_DEPS
-    AWS::aws-sdk-cpp-core
-    AWS::aws-sdk-cpp-s3
+    aws-cpp-sdk-core
+    aws-cpp-sdk-s3
     Azure::azure-storage-blobs
     hdf5_custom
     OpenSSL::SSL

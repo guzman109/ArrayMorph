@@ -72,3 +72,13 @@ uv.lock
 *.flv
 *.mov
 *.wmv
+
+# vcpkg
+lib/vcpkg_installed/
+vcpkg_installed/
+
+# Conan generated (legacy)
+lib/activate.sh
+lib/deactivate.sh
+.conan2/
+conan.conf
