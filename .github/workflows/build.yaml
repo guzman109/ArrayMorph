@@ -1,6 +1,8 @@
 name: Build, Test, and Publish
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   release:
@@ -17,19 +19,91 @@ jobs:
       matrix:
         include:
           # Linux x86_64 (manylinux_2_28 container)
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.9" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.10" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.11" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.12" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.13" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, container: "quay.io/pypa/manylinux_2_28_x86_64", python: "3.14" }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.9",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.10",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.11",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.12",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.13",
+            }
+          - {
+              os: linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              container: "quay.io/pypa/manylinux_2_28_x86_64",
+              python: "3.14",
+            }
           # Linux aarch64 (manylinux_2_28 container)
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.9" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.10" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.11" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.12" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.13" }
-          - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", python: "3.14" }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.9",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.10",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.11",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.12",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.13",
+            }
+          - {
+              os: linux,
+              arch: aarch64,
+              runner: ubuntu-24.04-arm,
+              container: "quay.io/pypa/manylinux_2_28_aarch64",
+              python: "3.14",
+            }
           # macOS arm64
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.9" }
           - { os: macos, arch: arm64, runner: macos-latest, python: "3.10" }
@@ -106,7 +180,7 @@ jobs:
 
       # ──────────────────────────────────────────────
       # 3. Discover h5py HDF5 + build wheel
-      # ──────────────────────────────────────────────        
+      # ──────────────────────────────────────────────
       - name: Discover h5py HDF5 location
         run: |
           HDF5_DIR=$(${GITHUB_WORKSPACE}/.venv/bin/python -c "
