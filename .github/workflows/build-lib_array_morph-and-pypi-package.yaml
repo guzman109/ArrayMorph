@@ -78,10 +78,10 @@ jobs:
 
       - name: Bootstrap vcpkg
         run: |
-          git clone https://github.com/microsoft/vcpkg.git ${{ github.workspace }}/vcpkg
-          ${{ github.workspace }}/vcpkg/bootstrap-vcpkg.sh
-          echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $GITHUB_ENV
-          echo "CMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+          git clone https://github.com/microsoft/vcpkg.git ${GITHUB_WORKSPACE}/vcpkg
+          ${GITHUB_WORKSPACE}/vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> $GITHUB_ENV
+          echo "CMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
 
       - name: Cache vcpkg packages
         uses: actions/cache@v4
