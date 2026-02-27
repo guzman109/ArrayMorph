@@ -56,9 +56,23 @@ jobs:
       # 1. System deps
       # ──────────────────────────────────────────────
 
-      - name: Install system deps (Linux container)
+      - name: Install system deps (Linux manylinux)
         if: runner.os == 'Linux'
-        run: yum install -y cmake ninja-build curl zip unzip tar openssl-devel
+        run: |
+          yum -y install \
+            git curl ca-certificates \
+            zip unzip tar \
+            cmake ninja-build pkgconfig \
+            gcc gcc-c++ make \
+            perl perl-IPC-Cmd perl-ExtUtils-MakeMaker \
+            kernel-headers
+
+      - name: Sanity check compilers
+        if: runner.os == 'Linux'
+        run: |
+          gcc --version
+          g++ --version
+          perl -MIPC::Cmd -e 'print "IPC::Cmd OK\n"'
 
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
