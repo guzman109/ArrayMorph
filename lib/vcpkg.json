@@ -7,8 +7,6 @@
       "features": ["s3"]
     },
     "azure-storage-blobs-cpp",
-    "hdf5",
-    "curl",
-    "openssl"
+    "hdf5"
   ]
 }
