@@ -58,7 +58,7 @@ jobs:
 
       - name: Install system deps (Linux container)
         if: runner.os == 'Linux'
-        run: yum install -y cmake ninja-build
+        run: yum install -y cmake ninja-build curl zip unzip tar
 
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
