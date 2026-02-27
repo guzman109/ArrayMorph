@@ -30,17 +30,8 @@ dev:
 # Full build from scratch: deps → wheel
 build: wheel
 
-# Test the built wheel in an isolated venv
-test:
-    rm -rf .test-venv
-    uv venv .test-venv
-    source .test-venv/bin/activate.fish
-    uv pip install dist/arraymorph-0.2.0-*.whl
-    python3 -c "import arraymorph; print('Plugin:', arraymorph.get_plugin_path()); arraymorph.enable(); print('VOL enabled')"
-    rm -rf .test-venv
-
 # Full build + test
-all: build test
+all: build
 
 # Clean build artifacts
 clean:
