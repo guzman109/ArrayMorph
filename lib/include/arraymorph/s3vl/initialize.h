@@ -28,9 +28,16 @@ inline herr_t S3VLINITIALIZE::s3VL_initialize_init(hid_t vipl_id) {
   // Aws::SDKOptions options; // Changed to use global sdk options for proper
   // shutdown
   g_sdk_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Off;
+  // curl_global_init/cleanup is not re-entrant and must be called exactly once
+  // per process. Python (or another loaded library) may already own that
+  // lifecycle. Delegating HTTP init/cleanup to the SDK causes a double-free /
+  // use-after-free inside Aws::Http::CleanupHttp() at process exit, resulting
+  // in a SIGSEGV from the HDF5 VOL terminate callback. Disabling SDK-managed
+  // HTTP init/cleanup avoids the crash while leaving curl usable for the SDK.
+  g_sdk_options.httpOptions.initAndCleanupCurl = false;
   std::set_terminate([]() {
     _exit(0);
-  }); // Shutdown conflicts with Python's interpretor shutdown on MacOS.
+  }); // Shutdown conflicts with Python's interpreter shutdown on macOS.
       // Terminate handler catches this and exits cleanly.
   Aws::InitAPI(g_sdk_options);
   Logger::log("------ Init VOL");
