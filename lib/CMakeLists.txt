@@ -41,15 +41,15 @@ find_package(OpenSSL REQUIRED)
 # duplicate symbol conflicts. vcpkg provides headers, h5py provides
 # the shared library.
 
-# Accept H5PY_HDF5_DIR from either CMake variable (-D) or env var
-if(NOT H5PY_HDF5_DIR AND DEFINED ENV{H5PY_HDF5_DIR})
-    set(H5PY_HDF5_DIR "$ENV{H5PY_HDF5_DIR}")
+# Accept HDF5_DIR from either CMake variable (-D) or env var
+if(NOT HDF5_DIR AND DEFINED ENV{HDF5_DIR})
+    set(HDF5_DIR "$ENV{HDF5_DIR}")
 endif()
 
-if(NOT H5PY_HDF5_DIR)
+if(NOT HDF5_DIR)
     message(FATAL_ERROR
-        "H5PY_HDF5_DIR not set. Run:\n"
-        "  export H5PY_HDF5_DIR=$(python3 -c \""
+        "HDF5_DIR not set. Run:\n"
+        "  export HDF5_DIR=$(python3 -c \""
         "import h5py, os; "
         "d=os.path.dirname(h5py.__file__); "
         "print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) "
@@ -57,7 +57,7 @@ if(NOT H5PY_HDF5_DIR)
     )
 endif()
 
-set(H5PY_LIB_DIR "${H5PY_HDF5_DIR}")
+set(H5PY_LIB_DIR "${HDF5_DIR}")
 
 # Find HDF5 headers (via vcpkg)
 find_package(HDF5 REQUIRED COMPONENTS C)
@@ -72,7 +72,7 @@ if(NOT _h5py_hdf5_libs)
     # List what's actually in the directory for debugging
     file(GLOB _h5py_dir_contents "${H5PY_LIB_DIR}/*")
     message(FATAL_ERROR
-        "No HDF5 shared library found in H5PY_HDF5_DIR=${H5PY_LIB_DIR}\n"
+        "No HDF5 shared library found in HDF5_DIR=${H5PY_LIB_DIR}\n"
         "Directory contents: ${_h5py_dir_contents}\n"
         "Expected libhdf5*.dylib (macOS) or libhdf5*.so* (Linux)"
     )

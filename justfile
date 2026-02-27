@@ -7,7 +7,7 @@ set export := true
 
 # --- Variables ---
 VCPKG_TOOLCHAIN := env("VCPKG_ROOT", home_directory() / ".vcpkg") / "scripts/buildsystems/vcpkg.cmake"
-H5PY_HDF5_DIR := `./.venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
+HDF5_DIR := `./.venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
 
 # --- Recipes ---
 
@@ -15,24 +15,20 @@ H5PY_HDF5_DIR := `./.venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.
 default:
     @just --list
 
-# Install C++ dependencies via vcpkg
-deps:
-    cd lib && vcpkg install
-
 # Build Python wheel (scikit-build-core handles CMake)
 wheel:
     CMAKE_TOOLCHAIN_FILE={{ VCPKG_TOOLCHAIN }} \
-    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
-    uv build --wheel --no-build-isolation
+    HDF5_DIR={{ HDF5_DIR }} \
+      uv build --wheel --no-build-isolation
 
 # Install editable into current venv (for development iteration)
 dev:
     CMAKE_TOOLCHAIN_FILE={{ VCPKG_TOOLCHAIN }} \
-    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
+    HDF5_DIR={{ HDF5_DIR }} \
     uv pip install -e .
 
 # Full build from scratch: deps → wheel
-build: deps wheel
+build: wheel
 
 # Test the built wheel in an isolated venv
 test:
@@ -56,5 +52,5 @@ rebuild: clean build
 # Show current env var values (for debugging)
 info:
     @echo "CMAKE_TOOLCHAIN_FILE: {{ VCPKG_TOOLCHAIN }}"
-    @echo "H5PY_HDF5_DIR:        {{ H5PY_HDF5_DIR }}"
+    @echo "HDF5_DIR:        {{ HDF5_DIR }}"
     @echo "Plugin lib:            $(find lib/build -name 'lib_array_morph*' 2>/dev/null || echo 'not built')"

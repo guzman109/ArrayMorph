@@ -6,7 +6,7 @@ VCPKG_TOOLCHAIN := env("VCPKG_ROOT", home_directory() / ".vcpkg") / "scripts/bui
 
 # Set this to the path where H5Py installs HDF5 binary. On macOS its .dylib, Linux .so, Windows .dll
 
-H5PY_HDF5_DIR := `../.venv/bin/python -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
+HDF5_DIR := `../.venv/bin/python -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
 
 # Settings
 set dotenv-load := true
@@ -16,13 +16,9 @@ set export := true
 default:
     @just --list
 
-# 1. Install dependencies via vcpkg
-deps:
-    vcpkg install
-
-# 2. Setup the CMake build environment
+# Setup the CMake build environment
 setup:
-    export H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }}; \
+    export HDF5_DIR={{ HDF5_DIR }}; \
     cmake -B {{ BUILD_DIR }} -S . \
         -DCMAKE_TOOLCHAIN_FILE={{ VCPKG_TOOLCHAIN }} \
         -DCMAKE_BUILD_TYPE=Release \
@@ -31,10 +27,10 @@ setup:
 build:
     cmake --build {{ BUILD_DIR }}
 
-# 5. Full build from scratch
-full-build: deps setup build
+# Full build from scratch
+full-build: setup build
 
-# 6. Clean all build and dependency artifacts
+# Clean all build and dependency artifacts
 clean:
     rm -rf {{ BUILD_DIR }} vcpkg_installed
 

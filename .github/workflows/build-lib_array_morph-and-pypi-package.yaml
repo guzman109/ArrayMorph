@@ -109,14 +109,14 @@ jobs:
       # ──────────────────────────────────────────────        
       - name: Discover h5py HDF5 location
         run: |
-          H5PY_HDF5_DIR=$(${GITHUB_WORKSPACE}/.venv/bin/python -c "
+          HDF5_DIR=$(${GITHUB_WORKSPACE}/.venv/bin/python -c "
           import h5py, os
           d = os.path.dirname(h5py.__file__)
           dylibs = os.path.join(d, '.dylibs')
           libs = os.path.join(os.path.dirname(d), 'h5py.libs')
           print(dylibs if os.path.exists(dylibs) else libs)
           ")
-          echo "H5PY_HDF5_DIR=$H5PY_HDF5_DIR" >> $GITHUB_ENV
+          echo "HDF5_DIR=$HDF5_DIR" >> $GITHUB_ENV
 
       - name: Build wheel
         run: uv build --wheel --no-build-isolation --python ${GITHUB_WORKSPACE}/.venv/bin/python
@@ -128,7 +128,7 @@ jobs:
       - name: Repair wheel (Linux)
         if: runner.os == 'Linux'
         run: |
-          export LD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="${HDF5_DIR}:${LD_LIBRARY_PATH}"
           auditwheel show dist/*.whl
           auditwheel repair dist/*.whl -w wheelhouse/ \
             --exclude libhdf5.so \
@@ -139,7 +139,7 @@ jobs:
       - name: Repair wheel (macOS)
         if: runner.os == 'macOS'
         run: |
-          export DYLD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${DYLD_LIBRARY_PATH}"
+          export DYLD_LIBRARY_PATH="${HDF5_DIR}:${DYLD_LIBRARY_PATH}"
           delocate-listdeps dist/*.whl
           delocate-wheel -w wheelhouse/ dist/*.whl \
             --exclude libhdf5 \
