@@ -1,6 +1,6 @@
 # ArrayMorph
 
-[![Build Status](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yml/badge.svg)](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yml)
+[![Build Status](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yml/badge.svg)](https://github.com/ICICLE-ai/arraymorph/actions/workflows/build.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ArrayMorph enables efficient storage and retrieval of array data from cloud object stores, supporting AWS S3 and Azure Blob Storage. It is an HDF5 Virtual Object Layer (VOL) plugin that transparently routes HDF5 file operations to cloud storage — existing h5py or HDF5 C++ code works unchanged once the plugin is loaded.
