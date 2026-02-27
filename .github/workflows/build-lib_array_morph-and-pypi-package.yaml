@@ -93,7 +93,9 @@ jobs:
       # ──────────────────────────────────────────────
       # 3. Discover h5py HDF5 + build wheel
       # ──────────────────────────────────────────────
-
+      - name: Debug venv
+        run: ls -la ${{ github.workspace }}/.venv/bin/ || echo "No .venv/bin found"
+        
       - name: Discover h5py HDF5 location
         run: |
           H5PY_HDF5_DIR=$(${{ github.workspace }}/.venv/bin/python3 -c "
