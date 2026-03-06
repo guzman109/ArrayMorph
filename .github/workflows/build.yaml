@@ -78,7 +78,7 @@ jobs:
 
       - name: Install build tools
         run: |
-          uv venv
+          uv venv --clear
           uv pip install --python .venv/bin/python \
             build \
             scikit-build-core \
