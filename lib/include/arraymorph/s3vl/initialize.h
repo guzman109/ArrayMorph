@@ -10,8 +10,8 @@
 #include <exception>
 #include <hdf5.h>
 #include <optional>
-#include <variant>
 #include <string>
+#include <variant>
 static Aws::SDKOptions g_sdk_options;
 
 class S3VLINITIALIZE {

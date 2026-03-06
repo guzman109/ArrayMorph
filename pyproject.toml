@@ -1,36 +1,58 @@
 [build-system]
-requires = ["scikit-build-core", "setuptools-scm"]
+requires = ["scikit-build-core>=0.11", "cmake>=3.20", "ninja"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "arraymorph"
-dynamic = ["version"]
+version = "0.2.0"
 description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "ruochenj123, wangtg2013" }]
-requires-python = ">=3.9"
-dependencies = ["h5py>=3.11.0"]
+authors = [{ name = "ICICLE AI Institute" }]
+requires-python = ">=3.10"
+
+# Important: pin h5py, because this package is intentionally coupled
+# to h5py's bundled HDF5 at runtime.
+dependencies = ["h5py>=3.10,<3.16"]
 
 [project.urls]
 Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
 Repository = "https://github.com/ICICLE-ai/ArrayMorph"
 Issues = "https://github.com/ICICLE-ai/ArrayMorph/issues"
 
-
-# --- scikit-build-core settings ---
-
 [tool.scikit-build]
 cmake.source-dir = "lib"
 cmake.build-type = "Release"
-build.verbose = true
+cmake.verbose = true
 wheel.packages = ["src/arraymorph"]
-metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 
 [tool.scikit-build.cmake.define]
 CMAKE_POSITION_INDEPENDENT_CODE = "ON"
 CMAKE_TOOLCHAIN_FILE = { env = "CMAKE_TOOLCHAIN_FILE", default = "" }
-HDF5_DIR = { env = "HDF5_DIR", default = "" }
+H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
 
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
+test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py imported successfully')\""
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+before-all = "pip install conan"
+before-build = """
+pip install h5py==3.15.1 && \
+cd {package}/lib && conan install . --build=missing -of build
+"""
+# Do not repair/bundle HDF5 into our wheel.
+repair-wheel-command = ""
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+before-all = "pip install conan"
+before-build = """
+pip install h5py==3.15.1 && \
+cd {package}/lib && conan install . --build=missing -of build
+"""
+# Do not delocate HDF5 into our wheel.
+repair-wheel-command = ""
