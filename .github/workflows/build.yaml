@@ -105,14 +105,17 @@ jobs:
           H5PY_HDF5_DIR="$H5PY_HDF5_DIR" \
           .venv/bin/python -m build --wheel --no-isolation
 
+      - name: Create test venv
+        run: uv venv .test-venv --clear
+
       - name: Install built wheel
-        run: .venv/bin/python -m pip install --force-reinstall dist/*.whl
+        run: uv pip install --python .test-venv/bin/python dist/*.whl
 
       - name: Smoke test wheel
         shell: bash
         run: |
           set -euo pipefail
-          .venv/bin/python - <<'PY'
+          .test-venv/bin/python - <<'PY'
           import arraymorph
           import h5py
           print("arraymorph", arraymorph.get_plugin_path())
