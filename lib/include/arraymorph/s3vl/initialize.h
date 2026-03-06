@@ -10,8 +10,8 @@
 #include <exception>
 #include <hdf5.h>
 #include <optional>
+#include <string>
 #include <variant>
-
 static Aws::SDKOptions g_sdk_options;
 
 class S3VLINITIALIZE {
@@ -30,7 +30,7 @@ inline herr_t S3VLINITIALIZE::s3VL_initialize_init(hid_t vipl_id) {
   g_sdk_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Off;
   std::set_terminate([]() {
     _exit(0);
-  }); // Shutdown conflicts with Python's interpretor shutdown on MacOS.
+  }); // Shutdown conflicts with Python's interpreter shutdown on macOS.
       // Terminate handler catches this and exits cleanly.
   Aws::InitAPI(g_sdk_options);
   Logger::log("------ Init VOL");
@@ -65,7 +65,10 @@ inline herr_t S3VLINITIALIZE::s3VL_initialize_close() {
   // Proper SDK shutdown.
   global_cloud_client =
       std::monostate{}; // Reset the client's state to trigger destructor
-  Aws::ShutdownAPI(g_sdk_options);
+  //// Intentionally skip Aws::ShutdownAPI() — we're inside HDF5's atexit
+  // teardown where static destruction order is undefined. The process is
+  // exiting; the OS will reclaim all resources.
+  // Aws::ShutdownAPI(g_sdk_options);
   return ARRAYMORPH_SUCCESS;
 }
 

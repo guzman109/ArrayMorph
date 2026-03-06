@@ -5,67 +5,139 @@ on:
     branches: [main]
   release:
     types: [published]
-  workflow_dispatch:  # Manual trigger — builds and tests only, does not publish to PyPI
+  workflow_dispatch:
 
 jobs:
   build_wheels:
-    name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+    name: Build ${{ matrix.label }} / py${{ matrix.python-version }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
-          - os: linux
+          - label: linux-x86_64
+            os: linux
             arch: x86_64
             runner: ubuntu-latest
-          # Linux ARM64
-          - os: linux
+            python-version: "3.10"
+          - label: linux-x86_64
+            os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            python-version: "3.11"
+          - label: linux-x86_64
+            os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            python-version: "3.12"
+          - label: linux-x86_64
+            os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            python-version: "3.13"
+          - label: linux-arm64
+            os: linux
             arch: aarch64
             runner: ubuntu-24.04-arm
-          # macOS Intel
-          - os: macos
-            arch: x86_64
-            runner: macos-13
-          # macOS Apple Silicon
-          - os: macos
-            arch: arm64
-            runner: macos-latest
-
+            python-version: "3.10"
+          - label: linux-arm64
+            os: linux
+            arch: aarch64
+            runner: ubuntu-24.04-arm
+            python-version: "3.11"
+          - label: linux-arm64
+            os: linux
+            arch: aarch64
+            runner: ubuntu-24.04-arm
+            python-version: "3.12"
+          - label: linux-arm64
+            os: linux
+            arch: aarch64
+            runner: ubuntu-24.04-arm
+            python-version: "3.13"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      - name: Install cibuildwheel
-        run: uv tool install cibuildwheel
+      - name: Set up Python
+        run: uv python pin ${{ matrix.python-version }}
 
-      - name: Build wheels
-        run: cibuildwheel --output-dir wheelhouse
-        env:
-          CIBW_ARCHS: ${{ matrix.arch }}
+      - name: Cache Conan
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-${{ runner.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}-${{ hashFiles('lib/conanfile.py') }}
+          restore-keys: |
+            conan-${{ runner.os }}-${{ matrix.arch }}-
+
+      - name: Install build tools
+        run: |
+          uv venv
+          uv pip install --python .venv/bin/python \
+            build \
+            scikit-build-core \
+            conan \
+            "h5py>=3.10,<3.16" \
+            ninja \
+            cmake
+
+      - name: Detect Conan profile
+        run: .venv/bin/conan profile detect --force
+
+      - name: Install Conan dependencies
+        run: .venv/bin/conan install lib --build=missing -s build_type=Release -of lib/build
+
+      - name: Build wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          H5PY_HDF5_DIR="$(
+            .venv/bin/python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); print(os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"))'
+          )"
+          echo "Using H5PY_HDF5_DIR=$H5PY_HDF5_DIR"
+          CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/lib/build/build/Release/generators/conan_toolchain.cmake" \
+          H5PY_HDF5_DIR="$H5PY_HDF5_DIR" \
+          .venv/bin/python -m build --wheel --no-isolation
+
+      - name: Install built wheel
+        run: .venv/bin/python -m pip install --force-reinstall dist/*.whl
+
+      - name: Smoke test wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          .venv/bin/python - <<'PY'
+          import arraymorph
+          import h5py
+          print("arraymorph", arraymorph.get_plugin_path())
+          print("h5py", h5py.__version__, h5py.version.hdf5_version)
+          PY
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
-          path: wheelhouse/*.whl
+          name: wheels-${{ matrix.label }}-py${{ matrix.python-version }}
+          path: dist/*.whl
           retention-days: 7
 
-      # Extract the native lib from the wheel and attach to the GitHub release
       - name: Extract native library from wheel
         if: github.event_name == 'release'
         shell: bash
         run: |
-          wheel_file=$(ls wheelhouse/*.whl | head -1)
+          set -euo pipefail
+          wheel_file=$(ls dist/*.whl | head -1)
           mkdir -p extracted_lib
-          unzip -j "$wheel_file" "arraymorph/lib/lib_array_morph*" -d extracted_lib/
-          lib_file=$(ls extracted_lib/lib_array_morph*)
+          unzip -j "$wheel_file" "arraymorph/lib/libarraymorph*" -d extracted_lib/
+          lib_file=$(ls extracted_lib/libarraymorph*)
           ext="${lib_file##*.}"
-          cp "$lib_file" "lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext"
-          echo "LIB_ARTIFACT=lib_array_morph-${{ matrix.os }}-${{ matrix.arch }}.$ext" >> $GITHUB_ENV
+          cp "$lib_file" "libarraymorph-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}.$ext"
+          echo "LIB_ARTIFACT=libarraymorph-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}.$ext" >> "$GITHUB_ENV"
 
       - name: Attach native library to GitHub release
         if: github.event_name == 'release'
@@ -82,7 +154,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/arraymorph
     permissions:
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write
 
     steps:
       - name: Set up uv

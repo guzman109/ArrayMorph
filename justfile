@@ -1,63 +1,55 @@
+# Required Python packages (install in .venv before running just):
+#
+# pip install \
+#   build \
+#   scikit-build-core \
+#   cibuildwheel \
+#   conan \
+#   h5py==3.15.1
 
-# ArrayMorph — Top-Level Build Orchestration
-# https://just.systems
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# --- Settings ---
-set dotenv-load := true
-set export := true
+BUILD_TYPE := env_var_or_default("BUILD_TYPE", "Release")
 
-# --- Variables ---
-CONAN_BUILD_DIR := "lib/build/Release/generators"
-CMAKE_TOOLCHAIN_FILE := justfile_directory() / CONAN_BUILD_DIR / "conan_toolchain.cmake"
-H5PY_HDF5_DIR := `./.venv/bin/python -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
+# Automatically discover the HDF5 directory shipped with h5py.
+# This will FAIL if:
+#   • .venv does not exist
+#   • h5py is not installed
+# which is intentional.
 
-# --- Recipes ---
+H5PY_HDF5_DIR := `./.venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
+CONAN_BUILD := justfile_directory() / "lib" / "build" / BUILD_TYPE
+TOOLCHAIN := CONAN_BUILD / "generators" / "conan_toolchain.cmake"
 
-# List available commands
 default:
     @just --list
 
-# Install C++ dependencies via Conan
-deps:
-    cd lib && conan install . --build=missing -s build_type=Release
-
-# Build Python wheel (runs scikit-build-core + CMake)
-wheel:
-    CMAKE_TOOLCHAIN_FILE={{ CMAKE_TOOLCHAIN_FILE }} \
-    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
-    uv build
-
-# Install editable into current venv (for development iteration)
-dev:
-    CMAKE_TOOLCHAIN_FILE={{ CMAKE_TOOLCHAIN_FILE }} \
-    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
-    uv pip install -e .
-
-# Full build from scratch: deps → wheel
-build: deps wheel
-
-# Test the built wheel in an isolated venv
-test:
-    rm -rf .test-venv
-    uv venv .test-venv
-    source .test-venv/bin/activate.fish
-    uv pip install dist/arraymorph-0.2.0-*.whl
-    python -c "import arraymorph; print('Plugin:', arraymorph.get_plugin_path()); arraymorph.enable(); print('VOL enabled')"
-    rm -rf .test-venv
-
-# Full build + test
-all: build test
-
-# Clean build artifacts
-clean:
-    rm -rf lib/build dist *.egg-info .test-venv
-
-# Full clean rebuild
-rebuild: clean build
-
-# Show current env var values (for debugging)
 info:
-    @echo "CMAKE_TOOLCHAIN_FILE: {{ CMAKE_TOOLCHAIN_FILE }}"
-    @echo "H5PY_HDF5_DIR:        {{ H5PY_HDF5_DIR }}"
-    @echo "Plugin lib:            $(find lib/build -name 'lib_array_morph*' 2>/dev/null || echo 'not built')"
+    @echo "BUILD_TYPE: {{ BUILD_TYPE }}"
+    @echo "H5PY_HDF5_DIR: {{ H5PY_HDF5_DIR }}"
+    @echo "CONAN_BUILD: {{ CONAN_BUILD }}"
+    @echo "TOOLCHAIN: {{ TOOLCHAIN }}"
 
+deps:
+    conan install lib --build=missing -s build_type={{ BUILD_TYPE }}
+
+configure: deps
+    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
+    cmake -S lib -B {{ CONAN_BUILD }} \
+      -DCMAKE_BUILD_TYPE={{ BUILD_TYPE }} \
+      -DCMAKE_TOOLCHAIN_FILE={{ TOOLCHAIN }}
+
+build: configure
+    cmake --build {{ CONAN_BUILD }}
+
+wheel: deps
+    CMAKE_TOOLCHAIN_FILE={{ TOOLCHAIN }} \
+    H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
+    ./.venv/bin/python -m build --wheel --no-isolation
+
+clean:
+    rm -rf \
+        lib/build \
+        dist \
+        wheelhouse \
+        *.egg-info

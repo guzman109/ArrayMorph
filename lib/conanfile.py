@@ -1,26 +1,46 @@
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain, CMakeDeps
-from conan.tools.gnu import PkgConfigDeps
-from conan.tools.layout import basic_layout
 
 
 class ArrayMorphRecipe(ConanFile):
     name = "ArrayMorph"
     version = "0.2.0"
+
     settings = "os", "compiler", "build_type", "arch"
 
-    def requirements(self):
-        self.requires("aws-sdk-cpp/1.11.692")
-        self.requires("azure-sdk-for-cpp/1.16.1")
-        # self.requires("azure-storage-cpp/7.5.0")
-        self.requires("hdf5/1.14.6")
-        self.requires("libcurl/8.17.0")
-        self.requires("openssl/3.6.1")
+    requires = (
+        "aws-sdk-cpp/1.11.692",
+        "azure-sdk-for-cpp/1.16.1",
+        "hdf5/1.14.6",  # headers only in practice; runtime comes from h5py
+        "libcurl/8.17.0",
+        "openssl/3.6.1",
+    )
 
-    def configure(self):
-        self.options["*"].shared = False
-        self.options["aws-sdk-cpp"].s3 = True
-        self.options["aws-sdk-cpp"].text_to_speech = False
+    default_options = {
+        # We do NOT want to ship Conan's HDF5 runtime in the wheel.
+        # Keeping this static reduces accidental runtime coupling.
+        "hdf5/*:shared": False,
+
+        # Keep these static too so we don't need extra wheel bundling.
+        "aws-sdk-cpp/*:shared": False,
+        "azure-sdk-for-cpp/*:shared": False,
+        "libcurl/*:shared": False,
+        "openssl/*:shared": False,
+
+        # AWS: only S3
+        "aws-sdk-cpp/*:s3": True,
+        "aws-sdk-cpp/*:monitoring": False,
+        "aws-sdk-cpp/*:transfer": False,
+        "aws-sdk-cpp/*:queues": False,
+        "aws-sdk-cpp/*:identity-management": False,
+        "aws-sdk-cpp/*:access-management": False,
+        "aws-sdk-cpp/*:s3-encryption": False,
+        "aws-sdk-cpp/*:text-to-speech": False,
+
+        # Azure: only Blob
+        "azure-sdk-for-cpp/*:with_storage_blobs": True,
+        "azure-sdk-for-cpp/*:with_storage_datalake": False,
+    }
 
     def layout(self):
         cmake_layout(self)
@@ -28,7 +48,6 @@ class ArrayMorphRecipe(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self, generator="Ninja")
         tc.generate()
-        self.options["azure-sdk-for-cpp"].with_storage_blobs = True
-        self.options["azure-sdk-for-cpp"].with_storage_datalake = False
-        pc = CMakeDeps(self)
-        pc.generate()
+
+        deps = CMakeDeps(self)
+        deps.generate()
