@@ -224,7 +224,8 @@ jobs:
           WHL_ABS=$(realpath "$WHL")
           mkdir -p _whl_patch
           unzip -q "$WHL_ABS" -d _whl_patch
-          LIB=$(find _whl_patch -name "lib_arraymorph*.dylib" | head -1)
+          LIB=$(find _whl_patch -name "libarraymorph*.dylib" | head -1)
+          echo "Patching: $LIB"
           HDF5_REF=$(otool -L "$LIB" | grep libhdf5 | grep -v hl | awk '{print $1}')
           HDF5_FILENAME=$(basename "$HDF5_REF")
           install_name_tool -change "$HDF5_REF" \
