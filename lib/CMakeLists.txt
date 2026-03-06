@@ -94,13 +94,9 @@ message(STATUS "HDF5 binary:  ${_h5py_hdf5_lib}")
 
 # Collect all dependencies into a list
 set(ALL_DEPS
-    aws-cpp-sdk-core
     aws-cpp-sdk-s3
     Azure::azure-storage-blobs
     hdf5_custom
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    CURL::libcurl
 )
 
 # Enter src directory

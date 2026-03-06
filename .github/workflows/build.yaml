@@ -213,6 +213,25 @@ jobs:
       - name: Repair wheel (macOS)
         if: runner.os == 'macOS'
         run: |
+          # Fix h5py's libhdf5 install name (delocate baked in /DLC/... when building h5py's wheel)
+          HDF5_LIB=$(find "${HDF5_DIR}" -name "libhdf5.*.dylib" ! -name "*_hl*" | head -1)
+          install_name_tool -id "${HDF5_LIB}" "${HDF5_LIB}"
+
+          # Patch the /DLC/... reference inside libarraymorph.dylib in the wheel so it
+          # resolves to h5py's bundled libhdf5 via a loader-relative path at install time.
+          # libarraymorph lives at arraymorph/lib/, so ../../h5py/.dylibs/ reaches h5py's dylibs.
+          WHL=$(ls dist/*.whl | head -1)
+          WHL_ABS=$(realpath "$WHL")
+          mkdir -p _whl_patch
+          unzip -q "$WHL_ABS" -d _whl_patch
+          LIB=$(find _whl_patch -name "lib_arraymorph*.dylib" | head -1)
+          HDF5_REF=$(otool -L "$LIB" | grep libhdf5 | grep -v hl | awk '{print $1}')
+          HDF5_FILENAME=$(basename "$HDF5_REF")
+          install_name_tool -change "$HDF5_REF" \
+            "@loader_path/../../h5py/.dylibs/$HDF5_FILENAME" "$LIB"
+          (cd _whl_patch && zip -qr "$WHL_ABS" .)
+          rm -rf _whl_patch
+
           export DYLD_LIBRARY_PATH="${HDF5_DIR}:${DYLD_LIBRARY_PATH}"
           delocate-listdeps dist/*.whl
           delocate-wheel -w wheelhouse/ dist/*.whl \

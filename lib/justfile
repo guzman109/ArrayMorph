@@ -18,12 +18,11 @@ default:
 
 # Setup the CMake build environment
 setup:
-    export HDF5_DIR={{ HDF5_DIR }}; \
     cmake -B {{ BUILD_DIR }} -S . \
         -DCMAKE_TOOLCHAIN_FILE={{ VCPKG_TOOLCHAIN }} \
         -DCMAKE_BUILD_TYPE=Release \
-        -G Ninja
-
+        -DHDF5_DIR={{ HDF5_DIR }} \
+        -G Ninja 
 build:
     cmake --build {{ BUILD_DIR }}
 
