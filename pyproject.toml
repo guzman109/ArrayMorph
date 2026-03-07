@@ -39,6 +39,9 @@ test-command = "python -c 'import arraymorph, h5py; print(\"arraymorph+h5py impo
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
+before-all = [
+    "dnf install -y perl perl-IPC-Cmd ca-certificates",
+]
 before-build = [
     "pip install 'conan<3' 'h5py>=3.10,<3.16'",
     "conan profile detect --force",
