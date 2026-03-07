@@ -42,8 +42,8 @@ manylinux-aarch64-image = "manylinux_2_28"
 before-build = [
     "pip install 'conan<3' 'h5py>=3.10,<3.16'",
     "conan profile detect --force",
-    "conan lock create {package}/lib --build=missing -s build_type=Release --lockfile-out={package}/lib/conan.lock",
-    "conan install {package}/lib --lockfile={package}/lib/conan.lock -of {package}/lib/build",
+    "conan lock create {package}/lib -s build_type=Release --lockfile-out={package}/lib/conan.lock",
+    "conan install {package}/lib --lockfile={package}/lib/conan.lock --build=missing -of {package}/lib/build",
 ]
 environment = { CMAKE_TOOLCHAIN_FILE="/project/lib/build/build/Release/generators/conan_toolchain.cmake" }
 repair-wheel-command = ""
