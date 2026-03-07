@@ -336,7 +336,7 @@ jobs:
       - name: Build wheel
         run: uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
 
-      - name: Add Conan rpaths (macOS)
+      - name: Fix Conan dylib references (macOS)
         shell: bash
         run: |
           set -euo pipefail
@@ -346,9 +346,19 @@ jobs:
             find . -name '*.dylib' || true
             exit 1
           fi
-          find "$HOME/.conan2" -type d -path '*/p/lib' -print0 | while IFS= read -r -d '' dir; do
-            install_name_tool -add_rpath "$dir" "$LIB" 2>/dev/null || true
-          done
+
+          CURL_LIB=$(find "$HOME/.conan2" -name 'libcurl.4.dylib' | head -1)
+          SSL_LIB=$(find "$HOME/.conan2" -name 'libssl.3.dylib' | head -1)
+          CRYPTO_LIB=$(find "$HOME/.conan2" -name 'libcrypto.3.dylib' | head -1)
+
+          test -n "$CURL_LIB"
+          test -n "$SSL_LIB"
+          test -n "$CRYPTO_LIB"
+
+          install_name_tool -change @rpath/libcurl.4.dylib "$CURL_LIB" "$LIB"
+          install_name_tool -change @rpath/libssl.3.dylib "$SSL_LIB" "$LIB"
+          install_name_tool -change @rpath/libcrypto.3.dylib "$CRYPTO_LIB" "$LIB"
+
           otool -L "$LIB"
 
       - name: Repair wheel
