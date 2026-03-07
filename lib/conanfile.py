@@ -24,8 +24,8 @@ class ArrayMorphRecipe(ConanFile):
         # Keep these static too so we don't need extra wheel bundling.
         "aws-sdk-cpp/*:shared": False,
         "azure-sdk-for-cpp/*:shared": False,
-        "libcurl/*:shared": False,
-        "openssl/*:shared": False,
+        "libcurl/*:shared": True,
+        "openssl/*:shared": True,
 
         # AWS: only S3
         "aws-sdk-cpp/*:s3": True,
