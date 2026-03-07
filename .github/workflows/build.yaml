@@ -90,8 +90,11 @@ jobs:
       - name: Detect Conan profile
         run: .venv/bin/conan profile detect --force
 
+      - name: Create Conan lockfile
+        run: .venv/bin/conan lock create lib --build=missing -s build_type=Release --lockfile-out=lib/conan.lock
+
       - name: Install Conan dependencies
-        run: .venv/bin/conan install lib --build=missing -s build_type=Release -of lib/build
+        run: .venv/bin/conan install lib --lockfile=lib/conan.lock -of lib/build
 
       - name: Build wheel
         shell: bash
@@ -127,6 +130,13 @@ jobs:
         with:
           name: wheels-${{ matrix.label }}-py${{ matrix.python-version }}
           path: dist/*.whl
+          retention-days: 7
+
+      - name: Upload Conan lockfile artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conan-lock-${{ matrix.label }}-py${{ matrix.python-version }}
+          path: lib/conan.lock
           retention-days: 7
 
       - name: Extract native library from wheel
@@ -171,7 +181,7 @@ jobs:
           path: dist/
 
       - name: Publish to TestPyPI
-        run: uv publish --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/ --skip-existing dist/*
+        run: uv publish --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/
 
   publish:
     name: Publish to PyPI
