@@ -45,5 +45,5 @@ before-build = [
     "conan lock create {package}/lib --build=missing -s build_type=Release --lockfile-out={package}/lib/conan.lock",
     "conan install {package}/lib --lockfile={package}/lib/conan.lock -of {package}/lib/build",
 ]
-environment = { CMAKE_TOOLCHAIN_FILE="/project/lib/build/build/Release/generators/conan_toolchain.cmake", H5PY_HDF5_DIR="$(python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); print(os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"))')" }
+environment = { CMAKE_TOOLCHAIN_FILE="/project/lib/build/build/Release/generators/conan_toolchain.cmake" }
 repair-wheel-command = ""
