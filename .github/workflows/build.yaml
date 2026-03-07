@@ -336,14 +336,18 @@ jobs:
       - name: Build wheel
         run: uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
 
-      - name: Fix Conan dylib references (macOS)
+      - name: Fix Conan dylib references in wheel (macOS)
         shell: bash
         run: |
           set -euo pipefail
-          LIB=$(find . -name 'libarraymorph*.dylib' | head -1)
-          if [ -z "$LIB" ]; then
-            echo "ERROR: libarraymorph dylib not found"
-            find . -name '*.dylib' || true
+          WHEEL=$(ls dist/*.whl | head -1)
+          WORKDIR=$(mktemp -d)
+          unzip -q "$WHEEL" -d "$WORKDIR"
+
+          LIB="$WORKDIR/arraymorph/lib/libarraymorph.dylib"
+          if [ ! -f "$LIB" ]; then
+            echo "ERROR: libarraymorph.dylib not found in wheel"
+            find "$WORKDIR" -name '*.dylib' || true
             exit 1
           fi
 
@@ -360,6 +364,12 @@ jobs:
           install_name_tool -change @rpath/libcrypto.3.dylib "$CRYPTO_LIB" "$LIB"
 
           otool -L "$LIB"
+
+          rm -f "$WHEEL"
+          (
+            cd "$WORKDIR"
+            zip -qr "$WHEEL" .
+          )
 
       - name: Repair wheel
         run: |
