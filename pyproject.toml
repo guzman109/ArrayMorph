@@ -32,27 +32,18 @@ CMAKE_TOOLCHAIN_FILE = { env = "CMAKE_TOOLCHAIN_FILE", default = "" }
 H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+build = "cp310-* cp311-* cp312-* cp313-*"
 skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
-test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py imported successfully')\""
+test-command = "python -c 'import arraymorph, h5py; print(\"arraymorph+h5py imported successfully\")'"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-before-all = "pip install conan"
-before-build = """
-pip install h5py==3.15.1 && \
-cd {package}/lib && conan install . --build=missing -of build
-"""
-# Do not repair/bundle HDF5 into our wheel.
-repair-wheel-command = ""
-
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
-before-all = "pip install conan"
-before-build = """
-pip install h5py==3.15.1 && \
-cd {package}/lib && conan install . --build=missing -of build
-"""
-# Do not delocate HDF5 into our wheel.
+before-build = [
+    "pip install 'conan<3' 'h5py>=3.10,<3.16'",
+    "conan profile detect --force",
+    "conan lock create {package}/lib --build=missing -s build_type=Release --lockfile-out={package}/lib/conan.lock",
+    "conan install {package}/lib --lockfile={package}/lib/conan.lock -of {package}/lib/build",
+]
+environment = { CMAKE_TOOLCHAIN_FILE="/project/lib/build/build/Release/generators/conan_toolchain.cmake", H5PY_HDF5_DIR="$(python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); print(os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"))')" }
 repair-wheel-command = ""
