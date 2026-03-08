@@ -256,142 +256,6 @@ jobs:
           path: wheelhouse/*.whl
           retention-days: 7
 
-  build_macos_wheels:
-    name: Build (macos / arm64 / py${{ matrix.python }})
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.10", "3.11", "3.12", "3.13"]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.10.6"
-
-      - name: Set up Python
-        run: uv python install ${{ matrix.python }}
-
-      - name: Install system deps
-        run: brew install ninja cmake
-
-      - name: Install Python tools
-        run: |
-          uv venv --clear --python ${{ matrix.python }}
-          echo "${{ github.workspace }}/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install --python .venv/bin/python \
-            scikit-build-core \
-            setuptools-scm \
-            h5py \
-            build \
-            delocate
-
-      - name: Cache Conan packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.conan2
-          key: conan-macos-arm64-py${{ matrix.python }}-${{ hashFiles('lib/conanfile.py', 'pyproject.toml') }}
-          restore-keys: |
-            conan-macos-arm64-
-
-      - name: Conan install
-        working-directory: lib
-        run: |
-          uv tool install conan
-          conan profile detect --force
-          conan lock create . -s build_type=Release --lockfile-out=conan.lock
-          conan install . --lockfile=conan.lock --build=missing -of build \
-            -c tools.system.package_manager:mode=install \
-            -c tools.system.package_manager:sudo=True
-
-      - name: Find Conan toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          TOOLCHAIN=$(find "${{ github.workspace }}/lib/build" -name "conan_toolchain.cmake" | head -1)
-          if [ -z "$TOOLCHAIN" ]; then
-            echo "ERROR: conan_toolchain.cmake not found"
-            find "${{ github.workspace }}/lib/build" -type f -name "*.cmake" || true
-            exit 1
-          fi
-          echo "CMAKE_TOOLCHAIN_FILE=$TOOLCHAIN" >> "$GITHUB_ENV"
-
-      - name: Discover h5py HDF5 location
-        run: |
-          H5PY_HDF5_DIR=$(.venv/bin/python -c "
-          import h5py, os
-          d = os.path.dirname(h5py.__file__)
-          dylibs = os.path.join(d, '.dylibs')
-          libs = os.path.join(os.path.dirname(d), 'h5py.libs')
-          print(dylibs if os.path.exists(dylibs) else libs)
-          ")
-          echo "H5PY_HDF5_DIR=$H5PY_HDF5_DIR" >> "$GITHUB_ENV"
-
-      - name: Build wheel
-        run: uv build --wheel --no-build-isolation --python ${{ github.workspace }}/.venv/bin/python
-
-      - name: Fix Conan dylib references in wheel (macOS)
-        shell: bash
-        run: |
-          set -euo pipefail
-          WHEEL=$(python3 -c 'import os, glob; print(os.path.abspath(glob.glob("dist/*.whl")[0]))')
-          WORKDIR=$(mktemp -d)
-          unzip -q "$WHEEL" -d "$WORKDIR"
-
-          LIB="$WORKDIR/arraymorph/lib/libarraymorph.dylib"
-          if [ ! -f "$LIB" ]; then
-            echo "ERROR: libarraymorph.dylib not found in wheel"
-            find "$WORKDIR" -name '*.dylib' || true
-            exit 1
-          fi
-
-          CURL_LIB=$(find "$HOME/.conan2" -name 'libcurl.4.dylib' | head -1)
-          SSL_LIB=$(find "$HOME/.conan2" -name 'libssl.3.dylib' | head -1)
-          CRYPTO_LIB=$(find "$HOME/.conan2" -name 'libcrypto.3.dylib' | head -1)
-
-          test -n "$CURL_LIB"
-          test -n "$SSL_LIB"
-          test -n "$CRYPTO_LIB"
-
-          install_name_tool -change @rpath/libcurl.4.dylib "$CURL_LIB" "$LIB"
-          install_name_tool -change @rpath/libssl.3.dylib "$SSL_LIB" "$LIB"
-          install_name_tool -change @rpath/libcrypto.3.dylib "$CRYPTO_LIB" "$LIB"
-
-          otool -L "$LIB"
-
-          rm -f "$WHEEL"
-          (
-            cd "$WORKDIR"
-            zip -qr "$WHEEL" .
-          )
-
-      - name: Repair wheel
-        run: |
-          export DYLD_LIBRARY_PATH="${H5PY_HDF5_DIR}:${DYLD_LIBRARY_PATH}"
-          delocate-listdeps dist/*.whl
-          delocate-wheel -w wheelhouse/ dist/*.whl \
-            --exclude libhdf5 \
-            --exclude libhdf5_hl
-
-      - name: Smoke test
-        run: |
-          uv venv .test-venv --clear --python ${{ matrix.python }}
-          uv pip install --python .test-venv/bin/python wheelhouse/*.whl --force-reinstall
-          .test-venv/bin/python -c "import arraymorph; print('arraymorph imported successfully')"
-
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-macos-arm64-py${{ matrix.python }}
-          path: wheelhouse/*.whl
-          retention-days: 7
-
   build_sdist:
     name: Build sdist
     runs-on: ubuntu-latest
@@ -421,7 +285,7 @@ jobs:
 
   publish_test:
     name: Publish to TestPyPI
-    needs: [build_linux_x86_64_wheels, build_linux_aarch64_wheels, build_macos_wheels, build_sdist]
+    needs: [build_linux_x86_64_wheels, build_linux_aarch64_wheels, build_sdist]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
     permissions:
@@ -461,7 +325,6 @@ jobs:
       matrix:
         include:
           - { os: linux, runner: ubuntu-latest }
-          - { os: macos, runner: macos-latest }
 
     steps:
       - name: Install uv
