@@ -340,7 +340,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WHEEL=$(ls dist/*.whl | head -1)
+          WHEEL=$(python3 -c 'import os, glob; print(os.path.abspath(glob.glob("dist/*.whl")[0]))')
           WORKDIR=$(mktemp -d)
           unzip -q "$WHEEL" -d "$WORKDIR"
 
