@@ -314,7 +314,7 @@ jobs:
           path: dist/
 
       - name: Publish to TestPyPI
-        run: uv publish dist/* --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/ --skip-existing
+        run: uv publish dist/* --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/
 
   test_testpypi:
     name: Test TestPyPI (${{ matrix.os }})
