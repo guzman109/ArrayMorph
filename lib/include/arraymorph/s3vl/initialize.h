@@ -25,14 +25,13 @@ std::optional<std::string> getEnv(const char *var) {
 }
 
 inline herr_t S3VLINITIALIZE::s3VL_initialize_init(hid_t vipl_id) {
-  // Aws::SDKOptions options; // Changed to use global sdk options for proper
-  // shutdown
-  g_sdk_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Off;
-  std::set_terminate([]() {
-    _exit(0);
-  }); // Shutdown conflicts with Python's interpreter shutdown on macOS.
-      // Terminate handler catches this and exits cleanly.
-  Aws::InitAPI(g_sdk_options);
+  static std::atomic<bool> sdk_initialized{false};
+  if (!sdk_initialized.exchange(true)) {
+    g_sdk_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Off;
+    std::set_terminate([]() { _exit(0); });
+    Aws::InitAPI(g_sdk_options);
+  }
+
   Logger::log("------ Init VOL");
   std::optional<std::string> platform = getEnv("STORAGE_PLATFORM");
   if (platform.has_value()) {
