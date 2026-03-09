@@ -12,8 +12,6 @@ class ArrayMorphRecipe(ConanFile):
         "aws-sdk-cpp/1.11.692",
         "azure-sdk-for-cpp/1.16.1",
         "hdf5/1.14.6",  # headers only in practice; runtime comes from h5py
-        "libcurl/8.17.0",
-        "openssl/3.6.1",
     )
 
     default_options = {

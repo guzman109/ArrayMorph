@@ -8,6 +8,7 @@
 #   h5py==3.15.1
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+set dotenv-load
 
 BUILD_TYPE := env_var_or_default("BUILD_TYPE", "Release")
 
@@ -46,6 +47,9 @@ wheel: deps
     CMAKE_TOOLCHAIN_FILE={{ TOOLCHAIN }} \
     H5PY_HDF5_DIR={{ H5PY_HDF5_DIR }} \
     ./.venv/bin/python -m build --wheel --no-isolation
+
+test:
+  python ./examples/python/write.py
 
 clean:
     rm -rf \

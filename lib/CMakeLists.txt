@@ -20,8 +20,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Dependencies from Conan/CMakeDeps
 find_package(AWSSDK REQUIRED COMPONENTS core s3)
 find_package(AzureSDK REQUIRED)
-find_package(CURL REQUIRED)
-find_package(OpenSSL REQUIRED)
 
 # We keep Conan HDF5 only for headers.
 find_package(HDF5 REQUIRED COMPONENTS C)
@@ -113,9 +111,6 @@ set(ALL_DEPS
     AWS::aws-sdk-cpp-core
     AWS::aws-sdk-cpp-s3
     Azure::azure-storage-blobs
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    CURL::libcurl
     hdf5_runtime
 )
 

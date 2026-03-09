@@ -1,0 +1,55 @@
+# Lockfile test build for ArrayMorph.
+# This keeps the main Dockerfile untouched while we validate Conan locking.
+
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /work
+
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  cmake \
+  ninja-build \
+  pkg-config \
+  git \
+  curl \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml README.md /work/
+COPY lib/conanfile.py /work/lib/conanfile.py
+
+RUN uv python install 3.10
+RUN uv venv --python 3.10
+
+RUN uv pip install --python .venv/bin/python \
+  build \
+  scikit-build-core \
+  conan \
+  'h5py>=3.10,<3.16' \
+  ninja \
+  cmake
+
+# Create and then consume a lockfile from the exact resolved graph.
+RUN --mount=type=cache,target=/root/.conan2 \
+  .venv/bin/conan profile detect --force
+RUN --mount=type=cache,target=/root/.conan2 \
+  .venv/bin/conan lock create lib --build=missing -s build_type=Release --lockfile-out=/work/lib/conan.lock
+RUN --mount=type=cache,target=/root/.conan2 \
+  .venv/bin/conan install lib --lockfile=/work/lib/conan.lock -of /work/lib/build
+
+COPY src /work/src
+COPY lib/CMakeLists.txt /work/lib/CMakeLists.txt
+COPY lib/include /work/lib/include
+COPY lib/src /work/lib/src
+
+RUN --mount=type=cache,target=/root/.conan2 \
+  .venv/bin/python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); libdir=os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"); print(f"h5py {h5py.__version__} -> {libdir}")' && \
+  export H5PY_HDF5_DIR="$(.venv/bin/python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); print(os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"))')" && \
+  export CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=/work/lib/build/build/Release/generators/conan_toolchain.cmake" && \
+  .venv/bin/python -m build --wheel --no-isolation
+
+RUN ls -la /work/dist && \
+  ls -la /work/lib/conan.lock
