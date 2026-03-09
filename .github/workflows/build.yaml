@@ -40,8 +40,7 @@ jobs:
 
       - name: Fix Conan cache permissions
         if: always()
-        run: find ~/.conan2 -type f -exec chmod a+r {} + ; find ~/.conan2 -type d -exec chmod a+rx {} +
-
+        run: sudo find ~/.conan2 -type f -exec chmod a+r {} + ; sudo find ~/.conan2 -type d -exec chmod a+rx {} +
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
         with:
