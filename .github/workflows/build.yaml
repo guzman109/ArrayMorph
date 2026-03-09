@@ -76,7 +76,7 @@ jobs:
     name: Publish to TestPyPI
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
+    if: github.event_name == 'release'
     permissions:
       id-token: write
     environment:
