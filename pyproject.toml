@@ -48,7 +48,7 @@ before-build = [
   "conan install {package}/lib --lockfile={package}/lib/conan.lock --build=missing -of {package}/lib/build -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True",
 ]
 
-environment = { CMAKE_TOOLCHAIN_FILE = "/project/lib/build/build/Release/generators/conan_toolchain.cmake" }
+environment = { CMAKE_TOOLCHAIN_FILE = "/project/lib/build/build/Release/generators/conan_toolchain.cmake", SKBUILD_CMAKE_SOURCE_DIR = "lib" }
 
 repair-wheel-command = [
   "H5PY_LIBS=$(python -c \"import h5py, os; d=os.path.dirname(h5py.__file__); libs=os.path.join(os.path.dirname(d),'h5py.libs'); print(libs)\")",
