@@ -24,7 +24,7 @@ Issues = "https://github.com/ICICLE-ai/ArrayMorph/issues"
 # Replace the existing [tool.cibuildwheel] section in your pyproject.toml with this:
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-*"
+build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
 skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
 test-command = "python -c 'import arraymorph; print(\"ok\")'"
 build-frontend = "pip; args: --no-build-isolation"
