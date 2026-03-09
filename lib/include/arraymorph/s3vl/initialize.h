@@ -19,7 +19,7 @@ public:
   static herr_t s3VL_initialize_init(hid_t vipl_id);
   static herr_t s3VL_initialize_close();
 };
-std::optional<std::string> getEnv(const char *var) {
+inline std::optional<std::string> getEnv(const char *var) {
   const char *val = std::getenv(var);
   return val ? std::optional<std::string>(val) : std::nullopt;
 }

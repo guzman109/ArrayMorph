@@ -6,7 +6,7 @@
 
 #define LOG_ENABLE
 // #define PROFILE_ENABLE
-#define ARRAYMORPH_SUCCESS 1
+#define ARRAYMORPH_SUCCESS 0
 #define ARRAYMORPH_FAIL -1
 #define FILL_VALUE 0
 #define PROCESS

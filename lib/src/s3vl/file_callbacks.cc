@@ -135,6 +135,7 @@ herr_t S3VLFileCallbacks::S3VL_file_get(void *file, H5VL_file_get_args_t *args,
   if (args->op_type == H5VL_file_get_t::H5VL_FILE_GET_FCPL) {
     hid_t fcpl_id = H5Pcreate(H5P_FILE_CREATE);
     args->args.get_fcpl.fcpl_id = H5Pcopy(fcpl_id);
+    H5Pclose(fcpl_id);
     // args->args.get_fcpl.fcpl_id = 1;
   }
   return ARRAYMORPH_SUCCESS;

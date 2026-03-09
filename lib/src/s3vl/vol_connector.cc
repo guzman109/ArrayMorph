@@ -156,7 +156,7 @@ static herr_t S3_introspect_opt_query(void *obj, H5VL_subclass_t cls,
 
 static herr_t S3_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl,
                               const struct H5VL_class_t **conn_cls) {
-  *conn_cls = new H5VL_class_t;
+  *conn_cls = &template_class_g;
   return ARRAYMORPH_SUCCESS;
 }
 

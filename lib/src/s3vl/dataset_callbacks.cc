@@ -135,6 +135,7 @@ herr_t S3VLDatasetCallbacks::S3VL_dataset_get(void *dset,
   if (args->op_type == H5VL_dataset_get_t::H5VL_DATASET_GET_DCPL) {
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     args->args.get_dcpl.dcpl_id = H5Pcopy(dcpl_id);
+    H5Pclose(dcpl_id);
   } else if (args->op_type == H5VL_dataset_get_t::H5VL_DATASET_GET_SPACE) {
     std::vector<hsize_t> shape = dset_obj->shape;
     // swap(shape[0], shape[1]);
@@ -199,7 +200,7 @@ void *S3VLDatasetCallbacks::S3VL_wrap_object(void *obj, H5I_type_t obj_type,
 
 void *S3VLDatasetCallbacks::S3VL_get_object(const void *obj) {
   Logger::log("------ Get object");
-  return NULL;
+  return (void *)obj;
 }
 
 herr_t S3VLDatasetCallbacks::S3VL_dataset_specific(
