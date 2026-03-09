@@ -36,7 +36,7 @@ manylinux-aarch64-image = "manylinux_2_28"
 before-all = [
   # manylinux_2_28 is AlmaLinux 8 based — uses dnf, not apt
   "dnf install -y epel-release",
-  "dnf install -y perl perl-IPC-Cmd ca-certificates patchelf ninja-build libatomic",
+  "dnf install -y perl perl-IPC-Cmd ca-certificates patchelf ninja-build gcc-toolset-13-libatomic-devel",
   # X11/xcb deps — only add back if the build actually fails without them
   # "dnf install -y libX11-devel libxcb-devel ...",
 ]
