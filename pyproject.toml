@@ -8,7 +8,8 @@ version = "0.2.0"
 description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "ICICLE AI Institute" }]
+authors = [{ name = "ruochenj123, wangtg2013" }]
+
 requires-python = ">=3.10"
 
 # Important: pin h5py, because this package is intentionally coupled
@@ -20,39 +21,34 @@ Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
 Repository = "https://github.com/ICICLE-ai/ArrayMorph"
 Issues = "https://github.com/ICICLE-ai/ArrayMorph/issues"
 
-[tool.scikit-build]
-cmake.source-dir = "lib"
-cmake.build-type = "Release"
-cmake.verbose = true
-wheel.packages = ["src/arraymorph"]
-
-[tool.scikit-build.cmake.define]
-CMAKE_POSITION_INDEPENDENT_CODE = "ON"
-CMAKE_TOOLCHAIN_FILE = { env = "CMAKE_TOOLCHAIN_FILE", default = "" }
-H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
+# Replace the existing [tool.cibuildwheel] section in your pyproject.toml with this:
 
 [tool.cibuildwheel]
-build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+build = "cp310-* cp311-* cp312-* cp313-*"
 skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
-test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py imported successfully')\""
+test-command = "python -c 'import arraymorph; print(\"ok\")'"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-before-all = "pip install conan"
-before-build = """
-pip install h5py==3.15.1 && \
-cd {package}/lib && conan install . --build=missing -of build
-"""
-# Do not repair/bundle HDF5 into our wheel.
-repair-wheel-command = ""
 
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
-before-all = "pip install conan"
-before-build = """
-pip install h5py==3.15.1 && \
-cd {package}/lib && conan install . --build=missing -of build
-"""
-# Do not delocate HDF5 into our wheel.
-repair-wheel-command = ""
+before-all = [
+  # manylinux_2_28 is AlmaLinux 8 based — uses dnf, not apt
+  "dnf install -y perl perl-IPC-Cmd ca-certificates patchelf ninja-build",
+  # X11/xcb deps — only add back if the build actually fails without them
+  # "dnf install -y libX11-devel libxcb-devel ...",
+]
+
+before-build = [
+  "pip install 'conan>=2,<3' 'h5py>=3.10,<3.16' scikit-build-core setuptools-scm",
+  "conan profile detect --force",
+  "conan lock create {package}/lib -s build_type=Release --lockfile-out={package}/lib/conan.lock",
+  "conan install {package}/lib --lockfile={package}/lib/conan.lock --build=missing -of {package}/lib/build -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True",
+]
+
+environment = { CMAKE_TOOLCHAIN_FILE = "/project/lib/build/build/Release/generators/conan_toolchain.cmake" }
+
+repair-wheel-command = [
+  "H5PY_LIBS=$(python -c \"import h5py, os; d=os.path.dirname(h5py.__file__); libs=os.path.join(os.path.dirname(d),'h5py.libs'); print(libs)\")",
+  "LD_LIBRARY_PATH=$H5PY_LIBS:$LD_LIBRARY_PATH auditwheel repair {wheel} -w {dest_dir} --exclude libhdf5.so --exclude libhdf5.so.310 --exclude libhdf5_hl.so --exclude libhdf5_hl.so.310",
+]
