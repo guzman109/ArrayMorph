@@ -39,9 +39,11 @@ test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py impo
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
+before-all = "dnf install -y perl-IPC-Cmd"
 before-build = """
 pip install conan h5py==3.16.0 && \
 conan profile detect --force || true && \
+export CMAKE_TOOLCHAIN_FILE={package}/lib/build/build/Release/generators/conan_toolchain.cmake && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not repair/bundle HDF5 into our wheel.
@@ -51,10 +53,13 @@ repair-wheel-command = ""
 before-build = """
 pip install conan h5py==3.16.0 && \
 conan profile detect --force || true && \
+export CMAKE_TOOLCHAIN_FILE={package}/lib/build/build/Release/generators/conan_toolchain.cmake && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not delocate HDF5 into our wheel.
 repair-wheel-command = ""
+
+
 
 
 
