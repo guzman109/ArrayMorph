@@ -1,0 +1,166 @@
+name: Build, Test, and Publish
+
+on:
+  pull_request:
+  push:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build wheels (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64,  runner: ubuntu-latest }
+          - { arch: aarch64, runner: ubuntu-24.04-arm }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-${{ matrix.arch }}-${{ hashFiles('lib/conanfile.py', 'pyproject.toml') }}
+          restore-keys: |
+            conan-${{ matrix.arch }}-
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.22.0
+        env:
+          # Mount the host Conan cache into the container so actions/cache works
+          CIBW_CONTAINER_ENGINE: "docker; create_args: --volume /home/runner/.conan2:/root/.conan2"
+
+      - name: Fix Conan cache permissions
+        if: always()
+        run: sudo find ~/.conan2 -type f -exec chmod a+r {} + ; sudo find ~/.conan2 -type d -exec chmod a+rx {} +
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+          retention-days: 7
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Build sdist
+        run: uv build --sdist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          retention-days: 7
+
+  publish_test:
+    name: Publish to TestPyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/arraymorph
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        run: uv publish dist/* --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/
+
+  test_testpypi:
+    name: Test TestPyPI
+    needs: [publish_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install from TestPyPI
+        run: |
+          uv venv --clear --python 3.12
+          uv pip install --python .venv/bin/python \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            arraymorph
+
+      - name: Test
+        run: .venv/bin/python -c "import arraymorph; print('arraymorph imported successfully')"
+
+  publish:
+    name: Publish to PyPI
+    needs: [test_testpypi]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/arraymorph
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.6"
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Publish to PyPI
+        run: uv publish dist/*
