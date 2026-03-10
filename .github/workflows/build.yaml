@@ -42,6 +42,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.22.0
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fix Conan cache permissions
         if: always()
@@ -173,3 +174,4 @@ jobs:
 
       - name: Publish to PyPI
         run: uv publish dist/*
+
