@@ -35,15 +35,15 @@ H5PY_HDF5_DIR = { env = "H5PY_HDF5_DIR", default = "" }
 build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
 skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
 test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py imported successfully')\""
+environment = { CMAKE_TOOLCHAIN_FILE="{project}/lib/build/build/Release/generators/conan_toolchain.cmake" }
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-before-all = "dnf install -y perl-IPC-Cmd"
+before-all = "dnf install -y perl-IPC-Cmd perl-Time-Piece"
 before-build = """
 pip install conan h5py==3.16.0 && \
 conan profile detect --force || true && \
-export CMAKE_TOOLCHAIN_FILE={package}/lib/build/build/Release/generators/conan_toolchain.cmake && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not repair/bundle HDF5 into our wheel.
@@ -53,11 +53,14 @@ repair-wheel-command = ""
 before-build = """
 pip install conan h5py==3.16.0 && \
 conan profile detect --force || true && \
-export CMAKE_TOOLCHAIN_FILE={package}/lib/build/build/Release/generators/conan_toolchain.cmake && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not delocate HDF5 into our wheel.
 repair-wheel-command = ""
+
+
+
+
 
 
 
