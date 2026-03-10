@@ -18,7 +18,6 @@ jobs:
           - { os: linux, arch: x86_64, runner: ubuntu-latest }
           - { os: linux, arch: aarch64, runner: ubuntu-24.04-arm }
           - { os: macos, arch: arm64, runner: macos-14 }
-          - { os: macos, arch: x86_64, runner: macos-13 }
 
     steps:
       - name: Checkout
