@@ -13,7 +13,7 @@ requires-python = ">=3.10"
 
 # h5py provides the HDF5 shared library at runtime.
 # Pin to versions that ship HDF5 1.14.x (stable ABI).
-dependencies = ["h5py>=3.11<3.16"]
+dependencies = ["h5py>=3.11,<3.16"]
 
 [project.urls]
 Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
