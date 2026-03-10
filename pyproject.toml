@@ -13,7 +13,7 @@ requires-python = ">=3.10"
 
 # Important: pin h5py, because this package is intentionally coupled
 # to h5py's bundled HDF5 at runtime.
-dependencies = ["h5py>=3.10,<3.16"]
+dependencies = ["h5py==3.16.0"]
 
 [project.urls]
 Homepage = "https://github.com/ICICLE-ai/ArrayMorph"
@@ -39,23 +39,23 @@ test-command = "python -c \"import arraymorph, h5py; print('arraymorph+h5py impo
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-before-all = "pip install conan"
 before-build = """
-conan profile detect --force || true
-pip install h5py==3.15.1 && \
+pip install conan h5py==3.16.0 && \
+conan profile detect --force || true && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not repair/bundle HDF5 into our wheel.
 repair-wheel-command = ""
 
 [tool.cibuildwheel.macos]
-before-all = "pip install conan"
 before-build = """
-conan profile detect --force || true
-pip install h5py==3.15.1 && \
+pip install conan h5py==3.16.0 && \
+conan profile detect --force || true && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not delocate HDF5 into our wheel.
 repair-wheel-command = ""
+
+
 
 
