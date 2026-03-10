@@ -47,8 +47,8 @@ jobs:
             bash -exc '
               dnf install -y epel-release
               dnf install -y perl perl-IPC-Cmd ca-certificates ninja-build \
-                             patchelf gcc-toolset-13-libatomic-devel
-
+                  patchelf gcc-toolset-13-libatomic-devel \
+                  autoconf automake libtool m4
               # Python is ONLY used here to install Conan as a build tool
               export PATH="/opt/python/cp312-cp312/bin:$PATH"
               pip install "conan>=2,<3"
