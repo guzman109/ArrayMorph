@@ -1,6 +1,7 @@
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -12,13 +13,28 @@
 #define PROCESS
 #define POOLEXECUTOR
 
-const int s3Connections = 256;
-const int requestTimeoutMs = 30000;
-const int connectTimeoutMs = 30000;
-const int poolSize = 8192;
-const int retries = 3;
+// Read an integer env var, returning `fallback` if unset or invalid.
+inline int envInt(const char *name, int fallback) {
+  const char *val = std::getenv(name);
+  if (!val) return fallback;
+  char *end;
+  long v = std::strtol(val, &end, 10);
+  return (end != val && *end == '\0') ? static_cast<int>(v) : fallback;
+}
 
-const int THREAD_NUM = 256;
+// All tunables: set via env var or fall back to compile-time default.
+//   ARRAYMORPH_S3_CONNECTIONS     (default 256)
+//   ARRAYMORPH_REQUEST_TIMEOUT_MS (default 30000)
+//   ARRAYMORPH_CONNECT_TIMEOUT_MS (default 30000)
+//   ARRAYMORPH_POOL_SIZE          (default 8192)
+//   ARRAYMORPH_RETRIES            (default 3)
+//   ARRAYMORPH_THREAD_NUM         (default 256)
+inline const int s3Connections    = envInt("ARRAYMORPH_S3_CONNECTIONS",     256);
+inline const int requestTimeoutMs = envInt("ARRAYMORPH_REQUEST_TIMEOUT_MS", 30000);
+inline const int connectTimeoutMs = envInt("ARRAYMORPH_CONNECT_TIMEOUT_MS", 30000);
+inline const int poolSize         = envInt("ARRAYMORPH_POOL_SIZE",          8192);
+inline const int retries          = envInt("ARRAYMORPH_RETRIES",            3);
+inline const int THREAD_NUM       = envInt("ARRAYMORPH_THREAD_NUM",         256);
 
 extern std::string BUCKET_NAME;
 
