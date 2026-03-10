@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "HDF5 VOL connector for cloud object storage (AWS S3, Azure Blob)"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "ICICLE AI Institute" }]
+authors = [{ name = "ruochenj123, wangtg2013" }]
 requires-python = ">=3.10"
 
 # Important: pin h5py, because this package is intentionally coupled
@@ -41,6 +41,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 before-all = "pip install conan"
 before-build = """
+conan profile detect --force || true
 pip install h5py==3.15.1 && \
 cd {package}/lib && conan install . --build=missing -of build
 """
@@ -48,11 +49,13 @@ cd {package}/lib && conan install . --build=missing -of build
 repair-wheel-command = ""
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
 before-all = "pip install conan"
 before-build = """
+conan profile detect --force || true
 pip install h5py==3.15.1 && \
 cd {package}/lib && conan install . --build=missing -of build
 """
 # Do not delocate HDF5 into our wheel.
 repair-wheel-command = ""
+
+

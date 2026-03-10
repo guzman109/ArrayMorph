@@ -9,169 +9,89 @@ on:
 
 jobs:
   build_wheels:
-    name: Build ${{ matrix.label }} / py${{ matrix.python-version }}
+    name: Build wheels (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - label: linux-x86_64
-            os: linux
-            arch: x86_64
-            runner: ubuntu-latest
-            python-version: "3.10"
-          - label: linux-x86_64
-            os: linux
-            arch: x86_64
-            runner: ubuntu-latest
-            python-version: "3.11"
-          - label: linux-x86_64
-            os: linux
-            arch: x86_64
-            runner: ubuntu-latest
-            python-version: "3.12"
-          - label: linux-x86_64
-            os: linux
-            arch: x86_64
-            runner: ubuntu-latest
-            python-version: "3.13"
-          - label: linux-arm64
-            os: linux
-            arch: aarch64
-            runner: ubuntu-24.04-arm
-            python-version: "3.10"
-          - label: linux-arm64
-            os: linux
-            arch: aarch64
-            runner: ubuntu-24.04-arm
-            python-version: "3.11"
-          - label: linux-arm64
-            os: linux
-            arch: aarch64
-            runner: ubuntu-24.04-arm
-            python-version: "3.12"
-          - label: linux-arm64
-            os: linux
-            arch: aarch64
-            runner: ubuntu-24.04-arm
-            python-version: "3.13"
+          - { arch: x86_64,  runner: ubuntu-latest, engine: "docker; create_args: --volume /home/runner/.conan2:/root/.conan2" }
+          - { arch: aarch64, runner: ubuntu-24.04-arm, engine: "docker; create_args: --volume /home/runner/.conan2:/root/.conan2" }
+          - { arch: arm64,   runner: macos-14, engine: "" }
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
+          fetch-depth: 0
 
-      - name: Set up Python
-        run: uv python pin ${{ matrix.python-version }}
-
-      - name: Cache Conan
+      - name: Cache Conan packages
         uses: actions/cache@v4
         with:
           path: ~/.conan2
-          key: conan-${{ runner.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}-${{ hashFiles('lib/conanfile.py') }}
+          key: conan-${{ matrix.arch }}-${{ hashFiles('lib/conanfile.py', 'pyproject.toml') }}
           restore-keys: |
-            conan-${{ runner.os }}-${{ matrix.arch }}-
+            conan-${{ matrix.arch }}-
 
-      - name: Install build tools
-        run: |
-          uv venv --clear
-          uv pip install --python .venv/bin/python \
-            build \
-            scikit-build-core \
-            conan \
-            "h5py>=3.10,<3.16" \
-            ninja \
-            cmake
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_CONTAINER_ENGINE: ${{ matrix.engine }}
 
-      - name: Detect Conan profile
-        run: .venv/bin/conan profile detect --force
-
-      - name: Create Conan lockfile
-        run: .venv/bin/conan lock create lib --build=missing -s build_type=Release --lockfile-out=lib/conan.lock
-
-      - name: Install Conan dependencies
-        run: .venv/bin/conan install lib --lockfile=lib/conan.lock -of lib/build
-
-      - name: Build wheel
-        shell: bash
-        run: |
-          set -euo pipefail
-          H5PY_HDF5_DIR="$(
-            .venv/bin/python -c 'import h5py, os; d=os.path.dirname(h5py.__file__); print(os.path.join(d, ".dylibs") if os.path.exists(os.path.join(d, ".dylibs")) else os.path.join(os.path.dirname(d), "h5py.libs"))'
-          )"
-          echo "Using H5PY_HDF5_DIR=$H5PY_HDF5_DIR"
-          CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/lib/build/build/Release/generators/conan_toolchain.cmake" \
-          H5PY_HDF5_DIR="$H5PY_HDF5_DIR" \
-          .venv/bin/python -m build --wheel --no-isolation
-
-      - name: Create test venv
-        run: uv venv .test-venv --clear
-
-      - name: Install built wheel
-        run: uv pip install --python .test-venv/bin/python dist/*.whl
-
-      - name: Smoke test wheel
-        shell: bash
-        run: |
-          set -euo pipefail
-          .test-venv/bin/python - <<'PY'
-          import arraymorph
-          import h5py
-          print("arraymorph", arraymorph.get_plugin_path())
-          print("h5py", h5py.__version__, h5py.version.hdf5_version)
-          PY
-
-      - name: Upload wheel artifact
+      - name: Fix Conan cache permissions
+        if: always()
+        run: sudo find ~/.conan2 -type f -exec chmod a+r {} + ; sudo find ~/.conan2 -type d -exec chmod a+rx {} +
+      - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.label }}-py${{ matrix.python-version }}
-          path: dist/*.whl
+          name: wheels-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
           retention-days: 7
 
-      - name: Upload Conan lockfile artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conan-lock-${{ matrix.label }}-py${{ matrix.python-version }}
-          path: lib/conan.lock
-          retention-days: 7
-
-      - name: Extract native library from wheel
-        if: github.event_name == 'release'
-        shell: bash
-        run: |
-          set -euo pipefail
-          wheel_file=$(ls dist/*.whl | head -1)
-          mkdir -p extracted_lib
-          unzip -j "$wheel_file" "arraymorph/lib/libarraymorph*" -d extracted_lib/
-          lib_file=$(ls extracted_lib/libarraymorph*)
-          ext="${lib_file##*.}"
-          cp "$lib_file" "libarraymorph-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}.$ext"
-          echo "LIB_ARTIFACT=libarraymorph-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}.$ext" >> "$GITHUB_ENV"
-
-      - name: Attach native library to GitHub release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.LIB_ARTIFACT }}
-
-  publish_testpypi:
-    name: Publish to TestPyPI
-    needs: build_wheels
+  build_sdist:
+    name: Build sdist
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.9"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Build sdist
+        run: uv build --sdist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          retention-days: 7
+
+  publish_test:
+    name: Publish to TestPyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write
     environment:
       name: testpypi
       url: https://test.pypi.org/p/arraymorph
-    permissions:
-      id-token: write
 
     steps:
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.9"
 
       - name: Download all wheels
         uses: actions/download-artifact@v4
@@ -180,12 +100,42 @@ jobs:
           merge-multiple: true
           path: dist/
 
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
       - name: Publish to TestPyPI
-        run: uv publish --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/
+        run: uv publish dist/* --publish-url https://test.pypi.org/legacy/ --check-url https://test.pypi.org/simple/
+
+  test_testpypi:
+    name: Test TestPyPI
+    needs: [publish_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.9"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install from TestPyPI
+        run: |
+          uv venv --clear --python 3.12
+          uv pip install --python .venv/bin/python \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            arraymorph
+
+      - name: Test
+        run: .venv/bin/python -c "import arraymorph; print('arraymorph imported successfully')"
 
   publish:
     name: Publish to PyPI
-    needs: build_wheels
+    needs: [test_testpypi]
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     environment:
@@ -195,14 +145,22 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.9"
 
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
           merge-multiple: true
+          path: dist/
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
           path: dist/
 
       - name: Publish to PyPI

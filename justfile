@@ -18,7 +18,7 @@ BUILD_TYPE := env_var_or_default("BUILD_TYPE", "Release")
 #   • h5py is not installed
 # which is intentional.
 
-H5PY_HDF5_DIR := `./.venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"`
+H5PY_HDF5_DIR := `if [ -f .venv/bin/python3 ]; then .venv/bin/python3 -c "import h5py,os;d=os.path.dirname(h5py.__file__);print(os.path.join(d,'.dylibs') if os.path.exists(os.path.join(d,'.dylibs')) else os.path.join(os.path.dirname(d),'h5py.libs'))"; else echo ""; fi`
 CONAN_BUILD := justfile_directory() / "lib" / "build" / BUILD_TYPE
 TOOLCHAIN := CONAN_BUILD / "generators" / "conan_toolchain.cmake"
 
@@ -57,3 +57,4 @@ clean:
         dist \
         wheelhouse \
         *.egg-info
+
