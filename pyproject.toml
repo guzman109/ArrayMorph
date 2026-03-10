@@ -50,4 +50,4 @@ environment = { CMAKE_TOOLCHAIN_FILE = "/project/lib/build/build/Release/generat
 
 # CRITICAL: this MUST be a single string, not an array.
 # Array items run as separate shell commands — env vars don't persist across them.
-repair-wheel-command = "H5PY_LIBS=$(python -c \"import h5py, os; d=os.path.dirname(h5py.__file__); libs=os.path.join(os.path.dirname(d),'h5py.libs'); print(libs)\") && LD_LIBRARY_PATH=$H5PY_LIBS:$LD_LIBRARY_PATH auditwheel repair {wheel} -w {dest_dir} --exclude libhdf5.so --exclude libhdf5.so.310 --exclude libhdf5_hl.so --exclude libhdf5_hl.so.310"
+repair-wheel-command = "H5PY_LIBS=$(python -c \"import h5py, os; d=os.path.dirname(h5py.__file__); libs=os.path.join(os.path.dirname(d),'h5py.libs'); print(libs)\") && HDF5_EXCLUDES=$(ls $H5PY_LIBS/libhdf5* 2>/dev/null | xargs -I{} basename {} | sed 's/^/--exclude /' | tr '\\n' ' ') && LD_LIBRARY_PATH=$H5PY_LIBS:$LD_LIBRARY_PATH auditwheel repair {wheel} -w {dest_dir} $HDF5_EXCLUDES"
