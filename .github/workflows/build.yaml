@@ -38,6 +38,12 @@ jobs:
         run: |
           echo "CIBW_CONTAINER_ENGINE=docker; create_args: --volume /home/runner/.conan2:/root/.conan2" >> $GITHUB_ENV
 
+      - name: Pre-download virtualenv to avoid rate limits (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p ~/Library/Caches/cibuildwheel
+          curl -L --retry 5 --retry-delay 3 -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://github.com/pypa/get-virtualenv/blob/20.27.1/public/virtualenv.pyz?raw=true" -o ~/Library/Caches/cibuildwheel/virtualenv-20.27.1.pyz
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
         env:
@@ -174,4 +180,5 @@ jobs:
 
       - name: Publish to PyPI
         run: uv publish dist/*
+
 
